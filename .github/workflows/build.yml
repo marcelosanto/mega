@@ -20,16 +20,15 @@ jobs:
       - name: Install Poetry
         run: |
           curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Install dependencies
         run: |
-          export PATH="$HOME/.local/bin:$PATH"
-          poetry install --with dev
+          python -m poetry install --no-root --with dev
 
       - name: Build executable
         run: |
-          export PATH="$HOME/.local/bin:$PATH"
-          poetry run pyinstaller --noconfirm --onefile \
+          python -m poetry run pyinstaller --noconfirm --onefile \
             --add-data "mega_sena_asloterias_ate_concurso_2899_sorteio.xlsx:." \
             --add-data "loto_facil_asloterias_ate_concurso_3469_sorteio.xlsx:." \
             --name loteria-gerador-linux \
@@ -55,14 +54,19 @@ jobs:
       - name: Install Poetry
         run: |
           (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | python -
+          echo "$env:APPDATA\Python\Scripts" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Verify Poetry installation
+        run: |
+          python -m poetry --version
 
       - name: Install dependencies
         run: |
-          poetry install --with dev
+          python -m poetry install --no-root --with dev
 
       - name: Build executable
         run: |
-          poetry run pyinstaller --noconfirm --onefile `
+          python -m poetry run pyinstaller --noconfirm --onefile `
             --add-data "mega_sena_asloterias_ate_concurso_2899_sorteio.xlsx;." `
             --add-data "loto_facil_asloterias_ate_concurso_3469_sorteio.xlsx;." `
             --name loteria-gerador `

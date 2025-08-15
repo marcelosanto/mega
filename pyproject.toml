@@ -1,21 +1,20 @@
 [tool.poetry]
 name = "megasena-gerador"
 version = "0.1.0"
-description = "Gerador de números para Mega-Sena com base em dados históricos"
-authors = ["Seu Nome <seu.email@example.com>"]
-readme = "README.md"
+description = "Gerador de números para Mega-Sena e Loto Fácil"
+authors = ["Marcelo Santos"]
 
 [tool.poetry.dependencies]
-python = ">=3.11,<3.15"
-pandas = "^2.2.3"
+python = "^3.13"
+pandas = "^2.3.1"
 numpy = "^2.3.2"
-matplotlib = "^3.9.2"
+matplotlib = "^3.10.5"
 openpyxl = "^3.1.5"
-requests = "^2.31.0"
+requests = "^2.32.4"
 
-[tool.poetry.group.dev.dependencies]
+[tool.poetry.dev-dependencies]
 pyinstaller = "^6.15.0"
 
 [build-system]
-requires = ["poetry-core"]
+requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
