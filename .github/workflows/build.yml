@@ -1,0 +1,138 @@
+name: Build Lottery Generator
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+
+      - name: Install dependencies
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          poetry install --with dev
+
+      - name: Build executable
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          poetry run pyinstaller --noconfirm --onefile \
+            --add-data "mega_sena_asloterias_ate_concurso_2899_sorteio.xlsx:." \
+            --add-data "loto_facil_asloterias_ate_concurso_3469_sorteio.xlsx:." \
+            --name loteria-gerador-linux \
+            app.py
+
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: loteria-gerador-linux
+          path: dist/loteria-gerador-linux
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install Poetry
+        run: |
+          (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | python -
+
+      - name: Install dependencies
+        run: |
+          poetry install --with dev
+
+      - name: Build executable
+        run: |
+          poetry run pyinstaller --noconfirm --onefile `
+            --add-data "mega_sena_asloterias_ate_concurso_2899_sorteio.xlsx;." `
+            --add-data "loto_facil_asloterias_ate_concurso_3469_sorteio.xlsx;." `
+            --name loteria-gerador `
+            app.py
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: loteria-gerador-windows
+          path: dist/loteria-gerador.exe
+
+  release:
+    needs: [build-linux, build-windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download Linux artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: loteria-gerador-linux
+          path: dist/
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: loteria-gerador-windows
+          path: dist/
+
+      - name: Generate version.txt
+        run: |
+          echo "1.0.${{ github.run_number }}" > dist/version.txt
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          release_name: Release v1.0.${{ github.run_number }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Linux Executable to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/loteria-gerador-linux
+          asset_name: loteria-gerador-linux
+          asset_content_type: application/octet-stream
+
+      - name: Upload Windows Executable to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/loteria-gerador.exe
+          asset_name: loteria-gerador.exe
+          asset_content_type: application/octet-stream
+
+      - name: Upload version.txt to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/version.txt
+          asset_name: version.txt
+          asset_content_type: text/plain
