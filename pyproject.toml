@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "megasena-gerador"
+version = "0.1.0"
+description = "Gerador de números para Mega-Sena com base em dados históricos"
+authors = ["Seu Nome <seu.email@example.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+pandas = "^2.2.3"
+numpy = "^1.26.4"
+matplotlib = "^3.9.2"
+openpyxl = "^3.1.5"
+pyinstaller = "^6.10.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
