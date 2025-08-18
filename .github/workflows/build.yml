@@ -22,11 +22,12 @@ jobs:
 
       - name: Install Poetry
         run: |
-          curl -sSL https://install.python-poetry.org | python3 -
+          python -m pip install --user poetry==2.1.4
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Verify Poetry installation
         run: |
+          poetry --version
           python -m poetry --version
 
       - name: Install dependencies
@@ -64,12 +65,13 @@ jobs:
 
       - name: Install Poetry
         run: |
-          python -m pip install poetry
+          python -m pip install poetry==2.1.4
           echo "$env:USERPROFILE\AppData\Local\Programs\Python\Python313\Scripts" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           echo "$env:APPDATA\Python\Scripts" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Verify Poetry installation
         run: |
+          poetry --version
           python -m poetry --version
 
       - name: Install dependencies
