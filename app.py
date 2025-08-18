@@ -22,9 +22,9 @@ import tempfile
 import shutil
 
 # Versão atual do aplicativo
-VERSION = "1.0.0"
+VERSION = "1.0.1"
 # URL base para verificação de atualizações (substitua pelo seu repositório)
-UPDATE_BASE_URL = "https://github.com/yourusername/loteria-gerador/releases/latest/download/"
+UPDATE_BASE_URL = "https://github.com/marcelosanto/mega/releases/latest/download/"
 
 
 class LoteriaApp:
