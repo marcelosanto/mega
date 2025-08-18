@@ -5,6 +5,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write
+
 jobs:
   build-linux:
     runs-on: ubuntu-latest
@@ -22,9 +25,17 @@ jobs:
           curl -sSL https://install.python-poetry.org | python3 -
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
+      - name: Verify Poetry installation
+        run: |
+          python -m poetry --version
+
       - name: Install dependencies
         run: |
           python -m poetry install --no-root --with dev
+
+      - name: Verify XLSX files
+        run: |
+          ls -l mega_sena_asloterias_ate_concurso_2899_sorteio.xlsx loto_facil_asloterias_ate_concurso_3469_sorteio.xlsx
 
       - name: Build executable
         run: |
@@ -53,7 +64,8 @@ jobs:
 
       - name: Install Poetry
         run: |
-          (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | python -
+          python -m pip install poetry
+          echo "$env:USERPROFILE\AppData\Local\Programs\Python\Python313\Scripts" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           echo "$env:APPDATA\Python\Scripts" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Verify Poetry installation
@@ -63,6 +75,10 @@ jobs:
       - name: Install dependencies
         run: |
           python -m poetry install --no-root --with dev
+
+      - name: Verify XLSX files
+        run: |
+          dir mega_sena_asloterias_ate_concurso_2899_sorteio.xlsx loto_facil_asloterias_ate_concurso_3469_sorteio.xlsx
 
       - name: Build executable
         run: |
@@ -81,8 +97,6 @@ jobs:
   release:
     needs: [build-linux, build-windows]
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - name: Download Linux artifact
         uses: actions/download-artifact@v4
