@@ -1,11 +1,10 @@
-import os
-import sys
 import requests
 import tempfile
 import shutil
 import subprocess
 import stat
 from tkinter import messagebox
+from utils import get_resource_path
 
 
 class UpdateManager:
@@ -13,12 +12,6 @@ class UpdateManager:
         self.version = version
         self.update_base_url = update_base_url
         self.root = root
-
-    def get_resource_path(self, relative_path):
-        if hasattr(sys, '_MEIPASS'):
-            return os.path.join(sys._MEIPASS, relative_path)
-        else:
-            return os.path.join(os.path.dirname(__file__), relative_path)
 
     def check_for_updates(self, show_message=True):
         try:

@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import json
 from config import LOTTERY_CONFIG
+from utils import get_resource_path
 
 
 class LoteriaUI:
@@ -48,7 +49,7 @@ class LoteriaUI:
         loteria = self.app.loteria.get()
         config = self.config_loteria[loteria]
         try:
-            xlsx_path = self.app.update_manager.get_resource_path(
+            xlsx_path = get_resource_path(
                 config['caminho_xlsx'])
             df = pd.read_excel(xlsx_path, sheet_name=0, skiprows=6)
             if not all(col in df.columns for col in config['colunas_numeros']):
@@ -433,7 +434,7 @@ class LoteriaUI:
         ttk.Label(config_card, text="Método de geração:", style='Modern.TLabel').pack(
             anchor='w', padx=15, pady=(15, 5))
         metodo_combo = ttk.Combobox(config_card, textvariable=self.app.metodo, values=[
-                                    'Top Frequentes', 'Probabilístico'], state='readonly', style='Modern.TCombobox')
+                                    'Top Frequentes', 'Probabilistico'], state='readonly', style='Modern.TCombobox')
         metodo_combo.pack(fill='x', padx=15, pady=(0, 15))
         ttk.Label(config_card, text="Número de dezenas:", style='Modern.TLabel').pack(
             anchor='w', padx=15, pady=(0, 5))
