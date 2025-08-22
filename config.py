@@ -1,5 +1,5 @@
 VERSION = "1.0.10"
-UPDATE_BASE_URL = "https://github.com/marcelosanto/mega/releases/latest/download/"
+UPDATE_BASE_URL = "https://api.github.com/repos/marcelosanto/mega"
 
 LOTTERY_CONFIG = {
     'Mega-Sena': {
