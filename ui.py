@@ -245,7 +245,7 @@ class LoteriaUI:
     def criar_janela_salvar(self):
         save_window = tk.Toplevel(self.app.root)
         save_window.title("💾 Salvar Jogo")
-        save_window.geometry("400x300")
+        save_window.geometry("300x400")
         save_window.configure(bg='#1e1e2e')
         save_window.transient(self.app.root)
         save_window.grab_set()
