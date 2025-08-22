@@ -1,54 +1,125 @@
 import requests
-import tempfile
+import platform
+import os
 import shutil
+import tempfile
 import subprocess
-import stat
-from tkinter import messagebox
+import tkinter.messagebox as messagebox
 from utils import get_resource_path
 
 
 class UpdateManager:
-    def __init__(self, version, update_base_url, root):
-        self.version = version
-        self.update_base_url = update_base_url
-        self.root = root
+    def __init__(self, current_version, repo_url):
+        self.current_version = current_version
+        self.repo_url = repo_url
+        self.temp_dir = tempfile.mkdtemp()
+        self.platform = platform.system().lower()
+        self.executable_name = "loteria-windows.exe" if self.platform == "windows" else "loteria-linux"
 
-    def check_for_updates(self, show_message=True):
+    def get_latest_version(self):
         try:
             response = requests.get(
-                f"{self.update_base_url}version.txt", timeout=5)
+                f"{self.repo_url}/releases/latest", timeout=10)
             response.raise_for_status()
-            latest_version = response.text.strip()
-            if latest_version > self.version:
-                if messagebox.askyesno("📥 Atualização Disponível", f"Versão {latest_version} disponível (atual: {self.version}). Deseja atualizar agora?"):
-                    self.download_and_update(latest_version)
-            elif show_message:
-                messagebox.showinfo(
-                    "✅ Atualizado", "Você está usando a versão mais recente!")
+            latest_release = response.json()
+            latest_version = latest_release["tag_name"].lstrip("v")
+            return latest_version
         except requests.RequestException as e:
-            if show_message:
-                messagebox.showwarning(
-                    "⚠️ Atenção", f"Erro ao verificar atualizações: {e}")
+            print(f"Erro ao verificar versão mais recente: {e}")
+            return None
 
-    def download_and_update(self, latest_version):
+    def get_download_url(self, latest_version):
         try:
-            executable_name = 'loteria-gerador.exe' if sys.platform.startswith(
-                'win') else 'loteria-gerador-linux'
-            temp_dir = tempfile.gettempdir()
-            temp_path = os.path.join(temp_dir, f"{executable_name}.new")
             response = requests.get(
-                f"{self.update_base_url}{executable_name}", stream=True)
+                f"{self.repo_url}/releases/tag/v{latest_version}", timeout=10)
             response.raise_for_status()
-            with open(temp_path, 'wb') as f:
+            release_data = response.json()
+            for asset in release_data.get("assets", []):
+                if self.executable_name in asset["name"]:
+                    return asset["browser_download_url"]
+            print(
+                f"Asset para {self.executable_name} não encontrado na release.")
+            return None
+        except requests.RequestException as e:
+            print(f"Erro ao obter URL de download: {e}")
+            return None
+
+    def download_file(self, url, dest_path):
+        try:
+            response = requests.get(url, stream=True, timeout=10)
+            response.raise_for_status()
+            with open(dest_path, "wb") as f:
                 for chunk in response.iter_content(chunk_size=8192):
                     if chunk:
                         f.write(chunk)
-            if not sys.platform.startswith('win'):
-                os.chmod(temp_path, stat.S_IRWXU | stat.S_IRWXG |
-                         stat.S_IROTH | stat.S_IXOTH)
-            current_path = sys.executable
-            shutil.move(temp_path, current_path)
-            subprocess.Popen([current_path])
-            self.root.quit()
-        except Exception as e:
-            messagebox.showerror("❌ Erro", f"Erro ao atualizar: {e}")
+            print(f"Arquivo baixado para {dest_path}")
+            return True
+        except requests.RequestException as e:
+            print(f"Erro ao baixar arquivo: {e}")
+            return False
+
+    def replace_executable(self, new_executable_path):
+        current_executable = get_resource_path(self.executable_name)
+        try:
+            if os.path.exists(current_executable):
+                # Garante permissões no Linux
+                os.chmod(current_executable, 0o755)
+            temp_executable = os.path.join(self.temp_dir, self.executable_name)
+            shutil.move(new_executable_path, temp_executable)
+            shutil.copy2(temp_executable, current_executable)
+            if self.platform != "windows":
+                # Garante permissões no Linux
+                os.chmod(current_executable, 0o755)
+            print(f"Executável substituído: {current_executable}")
+            return True
+        except (OSError, shutil.Error) as e:
+            print(f"Erro ao substituir executável: {e}")
+            return False
+
+    def check_for_updates(self, show_message=True):
+        latest_version = self.get_latest_version()
+        if not latest_version:
+            if show_message:
+                messagebox.showerror(
+                    "❌ Erro", "Não foi possível verificar atualizações. Verifique sua conexão com a internet.")
+            return False
+        if self._is_newer_version(latest_version):
+            if show_message:
+                messagebox.showinfo(
+                    "🔄 Nova Versão", f"Nova versão {latest_version} disponível! Iniciando atualização...")
+            download_url = self.get_download_url(latest_version)
+            if not download_url:
+                if show_message:
+                    messagebox.showerror(
+                        "❌ Erro", "Não foi possível encontrar o arquivo de atualização para sua plataforma.")
+                return False
+            temp_executable = os.path.join(self.temp_dir, self.executable_name)
+            if self.download_file(download_url, temp_executable):
+                if self.replace_executable(temp_executable):
+                    if show_message:
+                        messagebox.showinfo(
+                            "✅ Sucesso", "Atualização concluída! Reinicie o aplicativo.")
+                    return True
+                else:
+                    if show_message:
+                        messagebox.showerror(
+                            "❌ Erro", "Falha ao substituir o executável. Verifique permissões ou se o aplicativo está em uso.")
+            else:
+                if show_message:
+                    messagebox.showerror(
+                        "❌ Erro", "Falha ao baixar a nova versão.")
+            return False
+        else:
+            if show_message:
+                messagebox.showinfo(
+                    "ℹ️ Info", "Você já está na versão mais recente.")
+            return False
+
+    def _is_newer_version(self, latest_version):
+        try:
+            current_parts = [int(x) for x in self.current_version.split(".")]
+            latest_parts = [int(x) for x in latest_version.split(".")]
+            return latest_parts > current_parts
+        except ValueError:
+            print("Erro ao comparar versões: formato inválido.")
+            return False

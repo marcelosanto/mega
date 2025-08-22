@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import ttk
 from ui import LoteriaUI
 from database import DatabaseManager
 from updates import UpdateManager
@@ -7,10 +7,10 @@ from config import LOTTERY_CONFIG, VERSION, UPDATE_BASE_URL
 
 
 class LoteriaApp:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("🎯 Gerador Avançado de Números para Loterias")
-        self.root.geometry("1200x800")
+    def __init__(self):
+        self.root = tk.Tk()
+        self.root.title("Gerador de Números para Loterias")
+        self.root.geometry("1000x700")
         self.root.configure(bg='#1e1e2e')
 
         # Initialize variables
@@ -21,27 +21,24 @@ class LoteriaApp:
         self.num_jogos = tk.IntVar(value=1)
         self.num_participantes = tk.IntVar(value=1)
         self.jogos_atuais = []
+        self.numeros_flat = []
+        self.freq = []
 
-        # Initialize components
-        self.config_loteria = LOTTERY_CONFIG
+        # Initialize managers
         self.db_manager = DatabaseManager()
         self.update_manager = UpdateManager(
-            VERSION, UPDATE_BASE_URL, self.root)
+            VERSION, UPDATE_BASE_URL)
+
+        # Initialize UI
         self.ui = LoteriaUI(self)
 
-        # Load initial data and setup
-        self.ui.carregar_dados()
-        self.ui.atualizar_dezenas()
-        self.root.after(1000, self.update_manager.check_for_updates, False)
+        # Check for updates on startup
+        self.update_manager.check_for_updates(show_message=False)
 
-    def __del__(self):
-        self.db_manager.close()
+    def run(self):
+        self.root.mainloop()
 
 
 if __name__ == "__main__":
-    try:
-        root = tk.Tk()
-        app = LoteriaApp(root)
-        root.mainloop()
-    except Exception as e:
-        print(f"Erro ao iniciar a aplicação: {e}")
+    app = LoteriaApp()
+    app.run()
