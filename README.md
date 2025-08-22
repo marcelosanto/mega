@@ -3,6 +3,9 @@
 
 Este é um aplicativo Python para gerar números para **Mega-Sena** e **Lotofácil**, utilizando dados históricos de arquivos Excel fornecidos. O aplicativo possui uma interface gráfica construída com Matplotlib, exibindo os números da Lotofácil (15-20) em roxo (`#8b44cc`) com uma barra de rolagem, e inclui um mecanismo de atualização automática para baixar a versão mais recente a partir das releases do GitHub.
 
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/00b6e385-7dbe-430d-9483-b6f490d22136" />
+
+
 ## Funcionalidades
 
 -   Gera números aleatórios para Mega-Sena e Lotofácil com base em dados históricos.
