@@ -55,6 +55,7 @@ class DatabaseManager:
             self.conn.commit()
             messagebox.showinfo(
                 "✅ Sucesso", "Jogo salvo com sucesso no histórico!")
+            print("DEBUG: Tentando salvar jogo...", app.jogos_atuais)
             return True
         except sqlite3.Error as e:
             messagebox.showerror("❌ Erro", f"Erro ao salvar jogo: {e}")

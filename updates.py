@@ -14,7 +14,7 @@ class UpdateManager:
         self.repo_url = repo_url
         self.temp_dir = tempfile.mkdtemp()
         self.platform = platform.system().lower()
-        self.executable_name = "loteria-windows.exe" if self.platform == "windows" else "loteria-linux"
+        self.executable_name = "loteria-gerador.exe" if self.platform == "windows" else "loteria-gerador-linux"
 
     def get_latest_version(self):
         try:
@@ -31,7 +31,7 @@ class UpdateManager:
     def get_download_url(self, latest_version):
         try:
             response = requests.get(
-                f"{self.repo_url}/releases/tag/v{latest_version}", timeout=10)
+                f"{self.repo_url}/releases/latest", timeout=10)
             response.raise_for_status()
             release_data = response.json()
             for asset in release_data.get("assets", []):
