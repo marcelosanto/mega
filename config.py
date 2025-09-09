@@ -1,4 +1,4 @@
-VERSION = "1.0.14"
+VERSION = "1.0.17"
 UPDATE_BASE_URL = "https://api.github.com/repos/marcelosanto/mega"
 
 LOTTERY_CONFIG = {

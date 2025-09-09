@@ -10,7 +10,7 @@ class LoteriaApp:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("Gerador de Números para Loterias")
-        self.root.geometry("1000x700")
+        self.root.geometry("1200x800")
         self.root.configure(bg='#1e1e2e')
 
         # Initialize variables
