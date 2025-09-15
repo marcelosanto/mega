@@ -33,7 +33,6 @@ jobs:
         with:
           python-version: '3.13'
 
-      # FIX 1: Instala as dependências do GTK necessárias para o build no Linux
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
         run: |
@@ -44,10 +43,10 @@ jobs:
         run: pip install poetry
 
       - name: Install dependencies
-        run: poetry install --no-root
+        # FIX: Removido o '--no-root' para instalar o projeto principal também
+        run: poetry install
 
       - name: Build Flet executable
-        # FIX 2: Usa --module-name para apontar para o local correto do main.py
         run: poetry run flet build ${{ matrix.platform }} --module-name megasena_gerador.main
 
       - name: Upload Artifact
