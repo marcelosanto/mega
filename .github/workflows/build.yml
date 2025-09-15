@@ -43,11 +43,12 @@ jobs:
         run: pip install poetry
 
       - name: Install dependencies
-        # FIX: Removido o '--no-root' para instalar o projeto principal também
         run: poetry install
 
       - name: Build Flet executable
-        run: poetry run flet build ${{ matrix.platform }} --module-name megasena_gerador.main
+        # FIX: Trocamos --module-name pelo caminho direto para o script main.py.
+        # Isso resolve o erro "megasena_gerador.py not found".
+        run: poetry run flet build ${{ matrix.platform }} megasena_gerador/main.py
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
@@ -86,3 +87,4 @@ jobs:
           files: |
             dist/linux-build/*
             dist/windows-build/*
+
