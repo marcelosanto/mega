@@ -16,11 +16,11 @@ jobs:
         include:
           - os: ubuntu-22.04
             platform: linux
-            build-command: poetry run flet build desktop --platform linux
+            build-command: poetry run flet build linux
             artifact-path: dist/lottery_generator
           - os: windows-2022
             platform: windows
-            build-command: poetry run flet build desktop --platform windows
+            build-command: poetry run flet build windows
             artifact-path: dist/lottery_generator.exe
 
     runs-on: ${{ matrix.os }}
