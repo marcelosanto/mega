@@ -48,7 +48,7 @@ jobs:
       - name: Build Flet executable
         # FIX: Adicionado o caminho para o script principal 'megasena_gerador/main.py'
         run: |
-          poetry run flet build ${{ matrix.platform }} megasena_gerador/main.py --app-name "Loteria Gerador" --app-version "1.0.${{ github.run_number }}"
+          poetry run flet build ${{ matrix.platform }} megasena_gerador/main.py
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
