@@ -6,7 +6,7 @@ authors = ["Marcelo Santo"]
 package-mode = false                                           # <--- ADICIONE ESTA LINHA
 
 [tool.poetry.dependencies]
-python = ">=3.13,<3.15"
+python = ">=3.12,<3.15"
 pandas = "^2.3.1"
 numpy = "^2.3.2"
 matplotlib = "^3.10.5"
