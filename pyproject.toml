@@ -3,6 +3,7 @@ name = "megasena-gerador"
 version = "0.1.16"
 description = "Gerador de números para Mega-Sena e Loto Fácil"
 authors = ["Marcelo Santo"]
+package-mode = false                                           # <--- ADICIONE ESTA LINHA
 
 [tool.poetry.dependencies]
 python = ">=3.13,<3.15"
