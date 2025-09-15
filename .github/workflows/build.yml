@@ -12,13 +12,16 @@ jobs:
   build:
     strategy:
       matrix:
-        # FIX: Using stable LTS versions instead of "latest"
         os: [ubuntu-22.04, windows-2022]
         include:
           - os: ubuntu-22.04
             platform: linux
+            build-command: poetry run flet build desktop --platform linux
+            artifact-path: dist/lottery_generator
           - os: windows-2022
             platform: windows
+            build-command: poetry run flet build desktop --platform windows
+            artifact-path: dist/lottery_generator.exe
 
     runs-on: ${{ matrix.os }}
     env:
@@ -34,10 +37,15 @@ jobs:
           python-version: '3.12'
 
       - name: Install Linux dependencies
-        if: runner.os == 'Linux'
+        if: matrix.os == 'ubuntu-22.04'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev
+
+      - name: Install Windows dependencies (optional)
+        if: matrix.os == 'windows-2022'
+        run: |
+          pip install pywin32  # Optional: Add Windows-specific dependencies if needed
 
       - name: Install Poetry
         run: pip install poetry
@@ -46,13 +54,17 @@ jobs:
         run: poetry install
 
       - name: Build Flet executable
-        run: poetry run flet build ${{ matrix.platform }}
+        run: ${{ matrix.build-command }}
+
+      - name: List build output
+        run: dir dist || ls -R dist
+        shell: bash
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.platform }}-build
-          path: dist/*
+          path: ${{ matrix.artifact-path }}
 
   release:
     needs: [build]
@@ -65,24 +77,18 @@ jobs:
 
       - name: Display structure of downloaded files
         run: ls -R dist
+        shell: bash
 
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: v1.0.${{ github.run_number }}
-          release_name: Release v1.0.${{ github.run_number }}
-          body: "Release automática com os builds para Linux e Windows."
-          draft: false
-          prerelease: false
-
-      - name: Upload Release Assets
+      - name: Create and Upload Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v1.0.${{ github.run_number }}
+          name: Release v1.0.${{ github.run_number }}
+          body: "Automated release with builds for Linux and Windows."
+          draft: false
+          prerelease: false
           files: |
-            dist/linux-build/*
-            dist/windows-build/*
-
+            dist/linux-build/lottery_generator
+            dist/windows-build/lottery_generator.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
