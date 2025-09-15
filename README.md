@@ -1,158 +1,128 @@
+# 🎲 Gerador de Números para Loterias
 
-# Gerador de Números para Loteria
+Uma aplicação de desktop moderna para gerar números de loteria (Mega-Sena e Loto Fácil) com base em diferentes estratégias estatísticas. Inclui histórico de jogos, visualização de frequência e um sistema de atualização automática.
 
-Este é um aplicativo Python para gerar números para **Mega-Sena** e **Lotofácil**, utilizando dados históricos de arquivos Excel fornecidos. O aplicativo possui uma interface gráfica construída com Matplotlib, exibindo os números da Lotofácil (15-20) em roxo (`#8b44cc`) com uma barra de rolagem, e inclui um mecanismo de atualização automática para baixar a versão mais recente a partir das releases do GitHub.
+## ✨ Funcionalidades
 
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/00b6e385-7dbe-430d-9483-b6f490d22136" />
-
-
-## Funcionalidades
-
--   Gera números aleatórios para Mega-Sena e Lotofácil com base em dados históricos.
--   Interface gráfica amigável com Matplotlib, exibindo números da Lotofácil em roxo.
--   Verificação de atualizações automáticas comparando a versão atual com `version.txt` das releases do GitHub.
--   Multiplataforma: Executáveis pré-compilados para Linux (`loteria-gerador-linux`) e Windows (`loteria-gerador.exe`).
-
-## Pré-requisitos
-
-Para executar ou compilar o aplicativo a partir do código-fonte, você precisa de:
-
--   **Python**: Versão 3.13 (recomendado, <3.15 devido à compatibilidade com PyInstaller).
--   **Poetry**: Para gerenciamento de dependências.
--   **Dependências**: Listadas em `pyproject.toml` (Pandas, NumPy, Matplotlib, OpenPyXL, Requests).
--   **Fontes**: Segoe UI e Consolas (para renderização consistente da interface). No Linux, instale com:
+-   **Múltiplas Loterias**: Suporte para Mega-Sena e Loto Fácil.
     
-    ```bash
-    sudo apt install ttf-mscorefonts-installer
+-   **Métodos de Geração**:
+    
+    -   **Top Frequentes**: Gera números baseados nos mais sorteados historicamente.
+        
+    -   **Probabilístico**: Gera números usando a frequência de cada dezena como um peso para o sorteio.
+        
+-   **Cálculo de Custos**: Calcula o custo total do jogo e o valor por participante em tempo real.
+    
+-   **Suporte a Bolão**: Permite gerar múltiplos jogos para um bolão, dividindo os custos entre os participantes.
+    
+-   **Histórico de Jogos**: Salva todos os jogos gerados num banco de dados local (SQLite) para consulta futura.
+    
+-   **Visualização Avançada**:
+    
+    -   **Paginação**: O histórico é exibido em páginas para melhor organização.
+        
+    -   **Detalhes do Jogo**: Clique num jogo salvo para ver todos os números e detalhes da aposta.
+        
+-   **Análise de Dados**: Exibe um gráfico com a frequência histórica de cada número sorteado.
+    
+-   **Atualização Automática**: O aplicativo verifica se existem novas versões no GitHub e permite a atualização com um clique.
+    
+-   **Interface Moderna**: Construído com Flet para uma experiência de utilizador limpa e responsiva.
+    
+
+## 🛠️ Tecnologias Utilizadas
+
+-   **Linguagem**: Python 3.13
+    
+-   **Interface Gráfica**: [Flet](https://flet.dev/ "null")
+    
+-   **Análise de Dados**: [Pandas](https://pandas.pydata.org/ "null") & [NumPy](https://numpy.org/ "null")
+    
+-   **Gráficos**: [Matplotlib](https://matplotlib.org/ "null")
+    
+-   **Gestor de Dependências**: [Poetry](https://python-poetry.org/ "null")
+    
+-   **Build e CI/CD**: [GitHub Actions](https://github.com/features/actions "null")
+    
+
+## 🚀 Instalação e Uso
+
+### Para Utilizadores Finais
+
+1.  Vá para a secção de [**Releases**](https://www.google.com/search?q=https://github.com/marcelosanto/mega/releases/latest "null") deste repositório.
+    
+2.  Faça o download do arquivo correspondente ao seu sistema operativo:
+    
+    -   `loteria-gerador-windows.zip` para Windows.
+        
+    -   `loteria-gerador-linux.tar.gz` para Linux.
+        
+3.  Descompacte o arquivo e execute o programa.
+    
+
+### Para Desenvolvedores
+
+Se deseja executar o projeto localmente para desenvolvimento:
+
+1.  **Clone o repositório:**
     
     ```
-    
-
-## Instalação
-
-### Usando Executáveis Pré-compilados
-
-1.  Acesse a página de [Releases](https://github.com/marcelosanto/mega/releases).
-2.  Baixe a versão mais recente:
-    -   **Linux**: `loteria-gerador-linux`
-    -   **Windows**: `loteria-gerador.exe`
-3.  Execute o aplicativo:
-    -   **Linux**:
-        
-        ```bash
-        chmod +x loteria-gerador-linux
-        ./loteria-gerador-linux
-        
-        ```
-        
-    -   **Windows**:
-        
-        ```powershell
-        .\loteria-gerador.exe
-        
-        ```
-        
-
-### Executando a Partir do Código-Fonte
-
-1.  Clone o repositório:
-    
-    ```bash
-    git clone https://github.com/marcelosanto/mega.git
+    git clone [https://github.com/marcelosanto/mega.git](https://github.com/marcelosanto/mega.git)
     cd mega
     
     ```
     
-2.  Instale o Poetry:
+2.  **Instale o Poetry** (caso ainda não o tenha):
     
-    ```bash
-    python -m pip install --user poetry==2.1.4
+    ```
+    pip install poetry
     
     ```
     
-3.  Instale as dependências:
+3.  **Instale as dependências do projeto:**
     
-    ```bash
-    poetry install --no-root --with dev
+    ```
+    poetry install
     
     ```
     
-4.  Execute o aplicativo:
+4.  **Execute a aplicação:**
     
-    ```bash
-    poetry run python app.py
+    ```
+    poetry run python megasena_gerador/main.py
     
     ```
     
 
-## Compilando Executáveis
+## 🏗️ Processo de Build
 
-Para compilar seus próprios executáveis:
+O build dos executáveis para Windows e Linux é totalmente automatizado através do **GitHub Actions**. A cada `push` na branch `main`, um novo workflow é disparado, que:
 
-1.  Certifique-se de que o Poetry e as dependências estão instalados (veja acima).
-2.  Compile com o PyInstaller:
-    -   **Linux**:
-        
-        ```bash
-        poetry run pyinstaller --noconfirm --onefile \
-            --add-data "mega_sena_asloterias_ate_concurso_2899_sorteio.xlsx:." \
-            --add-data "loto_facil_asloterias_ate_concurso_3469_sorteio.xlsx:." \
-            --name loteria-gerador-linux \
-            app.py
-        
-        ```
-        
-    -   **Windows** (PowerShell):
-        
-        ```powershell
-        poetry run pyinstaller --noconfirm --onefile `
-            --add-data "mega_sena_asloterias_ate_concurso_2899_sorteio.xlsx;." `
-            --add-data "loto_facil_asloterias_ate_concurso_3469_sorteio.xlsx;." `
-            --name loteria-gerador `
-            app.py
-        
-        ```
-        
-3.  Encontre os executáveis na pasta `dist/`.
-
-## Atualização Automática
-
-O aplicativo verifica atualizações comparando sua versão (`1.0.0`) com o `version.txt` das [releases](https://github.com/marcelosanto/mega/releases/latest/download/version.txt). Se uma nova versão estiver disponível, ele baixa o executável correspondente e atualiza automaticamente.
-
-## Estrutura do Projeto
-
--   `app.py`: Script principal com a interface gráfica e lógica do aplicativo.
--   `mega_sena_asloterias_ate_concurso_2899_sorteio.xlsx`: Dados históricos da Mega-Sena.
--   `loto_facil_asloterias_ate_concurso_3469_sorteio.xlsx`: Dados históricos da Lotofácil.
--   `pyproject.toml`: Configuração do projeto e dependências.
--   `.github/workflows/build.yml`: Workflow do GitHub Actions para compilação e criação de releases.
-
-## Desenvolvimento
-
-Para contribuir:
-
-1.  Faça um fork e clone o repositório.
-2.  Crie um ambiente virtual com Poetry:
+1.  Configura o ambiente para Linux e Windows.
     
-    ```bash
-    poetry install --no-root --with dev
+2.  Instala as dependências com Poetry.
     
-    ```
+3.  Executa o comando `flet build` para empacotar a aplicação, incluindo os arquivos de dados da pasta `assets`.
     
-3.  Faça alterações e teste:
+4.  Cria uma nova "Release" no GitHub.
     
-    ```bash
-    poetry run python app.py
+5.  Anexa os executáveis (`.zip` e `.tar.gz`) à release, prontos para download.
     
-    ```
-    
-4.  Envie um pull request.
 
-## Licença
+Para fazer um build manual, o comando é:
 
-Este projeto está licenciado sob a Licença MIT. Veja o arquivo LICENSE para mais detalhes.
+```
+# Para Linux
+poetry run flet build linux megasena_gerador/main.py
 
-## Agradecimentos
+# Para Windows
+poetry run flet build windows megasena_gerador/main.py
 
--   Desenvolvido com [Python](https://www.python.org/), [Pandas](https://pandas.pydata.org/), [Matplotlib](https://matplotlib.org/) e [PyInstaller](https://pyinstaller.org/).
--   Dados históricos fornecidos pela Caixa Econômica Federal (resultados de loterias).
+```
+
+## 📄 Licença
+
+Distribuído sob a licença MIT. Veja o arquivo `LICENSE` para mais informações.
+
+Feito com ❤️ por **Marcelo Santo**.
