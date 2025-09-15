@@ -3,7 +3,7 @@ UPDATE_BASE_URL = "https://api.github.com/repos/marcelosanto/mega"
 
 LOTTERY_CONFIG = {
     'Mega-Sena': {
-        'caminho_xlsx': 'mega_sena_asloterias_ate_concurso_2899_sorteio.xlsx',
+        'caminho_xlsx': 'assets/mega_sena_asloterias_ate_concurso_2899_sorteio.xlsx',
         'colunas_numeros': ['bola 1', 'bola 2', 'bola 3', 'bola 4', 'bola 5', 'bola 6'],
         'min_dezenas': 6,
         'max_dezenas': 20,
@@ -14,7 +14,7 @@ LOTTERY_CONFIG = {
         'cor_gradiente': ['#00cc44', '#00aa33']
     },
     'Loto Fácil': {
-        'caminho_xlsx': 'loto_facil_asloterias_ate_concurso_3469_sorteio.xlsx',
+        'caminho_xlsx': 'assets/loto_facil_asloterias_ate_concurso_3469_sorteio.xlsx',
         'colunas_numeros': ['bola 1', 'bola 2', 'bola 3', 'bola 4', 'bola 5', 'bola 6', 'bola 7', 'bola 8', 'bola 9', 'bola 10', 'bola 11', 'bola 12', 'bola 13', 'bola 14', 'bola 15'],
         'min_dezenas': 15,
         'max_dezenas': 20,
