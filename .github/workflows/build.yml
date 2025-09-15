@@ -12,11 +12,11 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-22.04, windows-2022] # FIX: Using stable LTS versions
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             platform: linux
-          - os: windows-latest
+          - os: windows-2022
             platform: windows
 
     runs-on: ${{ matrix.os }}
@@ -27,7 +27,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # FIX: Changed Python version to 3.12 for better stability with Flet's build tools
       - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
