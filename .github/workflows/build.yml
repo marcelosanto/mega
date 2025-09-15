@@ -16,12 +16,8 @@ jobs:
         include:
           - os: ubuntu-latest
             platform: linux
-            asset_name: loteria-gerador-linux.tar.gz
-            artifact_name: linux-build
           - os: windows-latest
             platform: windows
-            asset_name: loteria-gerador-windows.zip
-            artifact_name: windows-build
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -39,25 +35,26 @@ jobs:
       - name: Install dependencies
         run: poetry install --no-root
 
-      - name: Verify assets directory
-        run: |
-          ls -R assets
+      - name: Verify assets directory (Linux)
+        # FIX: Corrigido o caminho para verificação
+        run: ls -R megasena_gerador/assets
         if: runner.os == 'Linux'
 
       - name: Verify assets directory (Windows)
-        run: |
-          dir assets
+        # FIX: Corrigido o caminho para verificação
+        run: dir megasena_gerador\assets
         if: runner.os == 'Windows'
 
       - name: Build Flet executable
+        # FIX: Adicionado o caminho para o script principal 'megasena_gerador/main.py'
         run: |
-          poetry run flet build ${{ matrix.platform }} --app-name "Loteria Gerador" --app-version "1.0.${{ github.run_number }}"
+          poetry run flet build ${{ matrix.platform }} megasena_gerador/main.py --app-name "Loteria Gerador" --app-version "1.0.${{ github.run_number }}"
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact_name }}
-          path: dist/* # Flet coloca os pacotes .zip e .tar.gz na pasta dist
+          name: ${{ matrix.platform }}-build
+          path: dist/*
 
   release:
     needs: [build]
