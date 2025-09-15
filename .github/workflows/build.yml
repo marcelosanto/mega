@@ -41,12 +41,12 @@ jobs:
       - name: Install Poetry
         run: pip install poetry
 
-      - name: Install dependencies
+      - name: Install project dependencies
         run: poetry install
 
       - name: Build Flet executable
-        # AGORA O COMANDO É MAIS SIMPLES
-        # Ele automaticamente encontra o main.py e a pasta assets na raiz
+        # FIX: Agora que o main.py está na raiz, o comando é mais simples.
+        # O Flet vai encontrar o main.py e a pasta assets automaticamente.
         run: poetry run flet build ${{ matrix.platform }}
 
       - name: Upload Artifact
@@ -86,4 +86,3 @@ jobs:
           files: |
             dist/linux-build/*
             dist/windows-build/*
-
