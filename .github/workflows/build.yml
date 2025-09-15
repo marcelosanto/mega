@@ -20,6 +20,11 @@ jobs:
             platform: windows
 
     runs-on: ${{ matrix.os }}
+
+    # FIX: Força o Python a usar UTF-8 em todos os sistemas, resolvendo o erro no Windows.
+    env:
+      PYTHONUTF8: "1"
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -36,19 +41,15 @@ jobs:
         run: poetry install --no-root
 
       - name: Verify assets directory (Linux)
-        # FIX: Corrigido o caminho para verificação
         run: ls -R megasena_gerador/assets
         if: runner.os == 'Linux'
 
       - name: Verify assets directory (Windows)
-        # FIX: Corrigido o caminho para verificação
         run: dir megasena_gerador\assets
         if: runner.os == 'Windows'
 
       - name: Build Flet executable
-        # FIX: Adicionado o caminho para o script principal 'megasena_gerador/main.py'
-        run: |
-          poetry run flet build ${{ matrix.platform }} megasena_gerador/main.py
+        run: poetry run flet build ${{ matrix.platform }} megasena_gerador/main.py
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
