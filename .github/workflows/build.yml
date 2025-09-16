@@ -57,9 +57,11 @@ jobs:
         run: |
           if [ "${{ matrix.os }}" == "ubuntu-22.04" ]; then
             curl -sSL https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.29.2-stable.tar.xz -o flutter.tar.xz
-            tar xf flutter.tar.xz -C ${{ runner.temp }}
+            tar xf flutter.tar.xz -C $RUNNER_TEMP
+            export FLET_FLUTTER_PATH=$RUNNER_TEMP/flutter
           else
             choco install flutter --version 3.29.2 -y
+            # no Windows, o Flutter já estará no PATH
           fi
 
       - name: Add Flutter to PATH (Linux)
@@ -70,7 +72,11 @@ jobs:
         run: flutter --version
 
       - name: Build Flet executable
-        run: ${{ matrix.build-command }}
+        run: |
+          export FLET_FLUTTER_PATH=${RUNNER_TEMP}/flutter
+          ${{ matrix.build-command }}
+        shell: bash
+
 
       - name: List build output
         run: dir dist || ls -R dist
