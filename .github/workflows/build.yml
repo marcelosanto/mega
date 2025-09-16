@@ -26,7 +26,6 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       PYTHONUTF8: "1"
-      FLET_FLUTTER_PATH: ${{ runner.temp }}/flutter
 
     steps:
       - name: Checkout repository
