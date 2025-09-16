@@ -73,7 +73,7 @@ jobs:
 
       - name: Install Flutter (Windows)
         if: matrix.os == 'windows-2022'
-        run: choco install flutter --version 3.35.3 -y
+        run: choco install flutter -y
         shell: pwsh
 
       # Verifica versão do Flutter
