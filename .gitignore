@@ -5,6 +5,6 @@
 /__pycache__
 loteria-gerador-linux
 loteria_historico.db
-megasena_gerador/__pycache__
-megasena_gerador/teste.py
+src/__pycache__
+src/teste.py
 poetry.lock
