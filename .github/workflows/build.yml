@@ -12,21 +12,21 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-22.04, windows-2022]
         include:
           - os: ubuntu-22.04
             platform: linux
-            build-command: poetry run flet build linux
-            artifact-path: dist/lottery_generator
+            artifact-name: lottery_generator
+            # O separador de dados para PyInstaller no Linux é ":"
+            data-separator: ":"
           - os: windows-2022
             platform: windows
-            build-command: poetry run flet build windows
-            artifact-path: dist/lottery_generator.exe
+            artifact-name: lottery_generator.exe
+            # O separador de dados para PyInstaller no Windows é ";"
+            data-separator: ";"
 
     runs-on: ${{ matrix.os }}
     env:
       PYTHONUTF8: "1"
-      FLET_NO_AUTO_FLUTTER: "1"
 
     steps:
       - name: Checkout repository
@@ -37,66 +37,37 @@ jobs:
         with:
           python-version: '3.12'
 
-      # Dependências Linux
+      # Dependências do sistema para o backend WebView do Flet (WebKitGTK)
       - name: Install Linux dependencies
         if: matrix.os == 'ubuntu-22.04'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libunwind-dev curl unzip git xz-utils
-        shell: bash
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.0-dev
 
-      # Dependências Windows
-      - name: Install Windows dependencies
-        if: matrix.os == 'windows-2022'
-        run: pip install pywin32
-        shell: pwsh
-
-      # Instalação do Poetry
       - name: Install Poetry
         run: pip install poetry
-        shell: bash
 
-      # Instala dependências do projeto
+      # Instala dependências do projeto, incluindo flet_desktop e pyinstaller
       - name: Install project dependencies
         run: poetry install --no-root
-        shell: bash
 
-      # Instalação do Flutter
-      - name: Install Flutter (Linux)
-        if: matrix.os == 'ubuntu-22.04'
+      # Gera o executável com PyInstaller (substituindo o "flet build")
+      - name: Build executable with PyInstaller
         run: |
-          curl -sSL https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.35.3-stable.tar.xz -o flutter.tar.xz
-          tar xf flutter.tar.xz -C ${{ runner.temp }}
-          echo "${{ runner.temp }}/flutter/bin" >> $GITHUB_PATH
-          export FLET_FLUTTER_PATH=${{ runner.temp }}/flutter
-        shell: bash
+          poetry run pyinstaller --name lottery_generator \
+            --onefile \
+            --windowed \
+            --add-data "src/assets${{ matrix.data-separator }}assets" \
+            --paths "src" \
+            src/main.py
 
-      - name: Install Flutter (Windows)
-        if: matrix.os == 'windows-2022'
-        run: choco install flutter -y
-        shell: pwsh
-
-      # Verifica versão do Flutter
-      - name: Verify Flutter version
-        run: flutter --version
-        shell: bash
-
-      # Build do app Flet
-      - name: Build Flet executable
-        run: ${{ matrix.build-command }}
-        shell: bash
-
-      # Lista saída da build
       - name: List build output
         run: ls -R dist
-        shell: bash
 
-      # Upload do artifact
+      # Faz o upload do executável final
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.platform }}-build
-          path: ${{ matrix.artifact-path }}
+          path: dist/${{ matrix.artifact-name }}
 
   release:
     needs: [build]
@@ -109,7 +80,6 @@ jobs:
 
       - name: Display structure of downloaded files
         run: ls -R dist
-        shell: bash
 
       - name: Create and Upload Release
         uses: softprops/action-gh-release@v2
