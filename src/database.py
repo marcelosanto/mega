@@ -4,11 +4,26 @@ import os
 from math import comb
 from utils import get_resource_path
 from config import LOTTERY_CONFIG
+import platformdirs
 
 
 class DatabaseManager:
     def __init__(self):
-        db_path = get_resource_path('loteria_historico.db')
+        # Define o nome do seu app e do autor para criar um caminho padronizado
+        app_name = "LoteriaGerador"
+        app_author = "MarceloSanto"  # Pode ser seu nome de usuário do GitHub
+
+        # Pega o diretório de dados padrão para o sistema operacional atual
+        data_dir = platformdirs.user_data_dir(app_name, app_author)
+
+        # Cria o diretório se ele não existir
+        os.makedirs(data_dir, exist_ok=True)
+
+        # Cria o caminho final para o banco de dados
+        db_path = os.path.join(data_dir, 'loteria_historico.db')
+
+        print(f"DEBUG: Caminho do Banco de Dados: {db_path}")
+
         self.conn = sqlite3.connect(db_path, check_same_thread=False)
         self.cursor = self.conn.cursor()
         self.init_database()

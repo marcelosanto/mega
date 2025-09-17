@@ -17,7 +17,7 @@ jobs:
             platform: linux
             artifact-name: loteria-gerador-linux
             data-separator: ":"
-          - os: windows-22.04
+          - os: windows-2022 # <-- CORRIGIDO AQUI
             platform: windows
             artifact-name: loteria-gerador.exe
             data-separator: ";"
@@ -48,13 +48,10 @@ jobs:
       - name: Build executable with PyInstaller
         shell: bash
         run: |
-          # --- CORREÇÃO AQUI: Removidas as aspas simples de --add-data ---
           BASE_CMD="poetry run pyinstaller --name loteria-gerador --onefile --windowed --add-data src/assets${{ matrix.data-separator }}assets --paths 'src' src/main.py"
-
-          # Executa o comando de build
+          
           $BASE_CMD
 
-          # Passo extra APENAS para Linux: Renomeia o arquivo gerado
           if [[ "${{ matrix.os }}" == "ubuntu-22.04" ]]; then
             echo "Renaming Linux executable..."
             mv dist/loteria-gerador dist/loteria-gerador-linux
