@@ -15,12 +15,10 @@ jobs:
         include:
           - os: ubuntu-22.04
             platform: linux
-            # --- NOME FINAL DESEJADO PARA LINUX ---
             artifact-name: loteria-gerador-linux
             data-separator: ":"
-          - os: windows-2022
+          - os: windows-22.04
             platform: windows
-            # --- NOME FINAL DESEJADO PARA WINDOWS ---
             artifact-name: loteria-gerador.exe
             data-separator: ";"
 
@@ -47,13 +45,11 @@ jobs:
       - name: Install project dependencies
         run: poetry install --no-root
 
-      # --- ETAPA DE BUILD ALTERADA ---
       - name: Build executable with PyInstaller
-        # Usamos 'if' para ter comandos específicos por OS
         shell: bash
         run: |
-          # Comando base para o PyInstaller
-          BASE_CMD="poetry run pyinstaller --name loteria-gerador --onefile --windowed --add-data 'src/assets${{ matrix.data-separator }}assets' --paths 'src' src/main.py"
+          # --- CORREÇÃO AQUI: Removidas as aspas simples de --add-data ---
+          BASE_CMD="poetry run pyinstaller --name loteria-gerador --onefile --windowed --add-data src/assets${{ matrix.data-separator }}assets --paths 'src' src/main.py"
 
           # Executa o comando de build
           $BASE_CMD
@@ -94,7 +90,6 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            # --- NOMES FINAIS PARA A RELEASE ---
             dist/linux-build/loteria-gerador-linux
             dist/windows-build/loteria-gerador.exe
         env:
