@@ -316,7 +316,7 @@ class LoteriaUI:
     # ===================================================================
     def main(self, page: ft.Page):
         self.page = page
-        page.title = "Gerador de Loterias"
+        page.title = "Gerador jogos de Loterias"
         page.bgcolor = "#f8fafc"
         page.padding = 0
         page.window_width, page.window_height = 1200, 800
@@ -324,6 +324,9 @@ class LoteriaUI:
 
         page.theme = ft.Theme(color_scheme=ft.ColorScheme(primary="#3b82f6", on_primary="white", secondary="#10b981", on_secondary="white",
                               surface="white", on_surface="#1f2937", background="#f8fafc", on_background="#1f2937"), use_material3=True)
+
+        page.window_minimizable = True
+        page.window_maximizable = True
 
         self.app.loteria = ft.Ref[ft.Dropdown]()
         self.app.num_dezenas = ft.Ref[ft.Slider]()

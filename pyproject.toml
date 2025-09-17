@@ -15,6 +15,7 @@ requests = "^2.32.4"
 flet = "^0.28.3"
 pyinstaller = "^6.16.0"
 flet-desktop = "^0.28.3"
+platformdirs = "^4.4.0"
 
 [tool.poetry.group.dev.dependencies]
 flet-cli = "0.28.3"
