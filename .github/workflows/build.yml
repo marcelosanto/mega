@@ -15,12 +15,12 @@ jobs:
         include:
           - os: ubuntu-22.04
             platform: linux
-            artifact-name: lottery_generator
+            artifact-name: loteria-gerador-linux
             # O separador de dados para PyInstaller no Linux é ":"
             data-separator: ":"
           - os: windows-2022
             platform: windows
-            artifact-name: lottery_generator.exe
+            artifact-name: loteria-gerador.exe
             # O separador de dados para PyInstaller no Windows é ";"
             data-separator: ";"
 
@@ -53,7 +53,7 @@ jobs:
       # --- ESTA É A ÚNICA SEÇÃO ALTERADA ---
       - name: Build executable with PyInstaller
         run: >
-          poetry run pyinstaller --name lottery_generator --onefile --windowed
+          poetry run pyinstaller --name loteria-gerador-linux --onefile --windowed
           --add-data "src/assets${{ matrix.data-separator }}assets"
           --paths "src" src/main.py
 
@@ -88,7 +88,7 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            dist/linux-build/lottery_generator
-            dist/windows-build/lottery_generator.exe
+            dist/linux-build/loteria-gerador-linux
+            dist/windows-build/loteria-gerador.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
