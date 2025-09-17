@@ -15,7 +15,7 @@ a = Analysis(
     ['src/main.py'],
     pathex=['src'],  # Adiciona 'src' ao caminho de busca de módulos
     binaries=[],
-    datas=[('src/assets', 'assets')], # Adiciona a pasta de assets
+    datas=[('src/assets', 'assets')], # Adiciona la pasta de assets
     hiddenimports=[],
     hookspath=[],
     runtime_hooks=[],
@@ -57,13 +57,16 @@ exe = EXE(
     entitlements_file=None,
 )
 
+# --- SEÇÃO CORRIGIDA ---
+# Os parâmetros 'strip' e 'upx' são passados diretamente para a função,
+# e não lidos do objeto 'a'.
 coll = COLLECT(
     exe,
-    a.datas,
     a.binaries,
     a.zipfiles,
-    a.strip,
-    a.upx,
-    a.upx_exclude,
+    a.datas,
+    strip=False,
+    upx=True,
+    upx_exclude=[],
     name='loteria-gerador'
 )
