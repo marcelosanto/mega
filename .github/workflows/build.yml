@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-24.04 # <-- CORRIGIDO AQUI
+          - os: ubuntu-24.04
             platform: linux
             artifact-name: loteria-gerador-linux
             data-separator: ":"
@@ -35,9 +35,11 @@ jobs:
         with:
           python-version: '3.12'
 
+      # --- CORREÇÃO AQUI ---
       - name: Install Linux dependencies
-        if: matrix.os == 'ubuntu-24.04' # <-- CORRIGIDO AQUI
-        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.0-dev
+        if: matrix.os == 'ubuntu-24.04'
+        # O nome do pacote mudou de libwebkit2gtk-4.0-dev para libwebkitgtk-6.0-dev no Ubuntu 24.04
+        run: sudo apt-get update && sudo apt-get install -y libwebkitgtk-6.0-dev
 
       - name: Install Poetry
         run: pip install poetry
@@ -52,7 +54,7 @@ jobs:
           
           $BASE_CMD
 
-          if [[ "${{ matrix.os }}" == "ubuntu-24.04" ]]; then # <-- CORRIGIDO AQUI
+          if [[ "${{ matrix.os }}" == "ubuntu-24.04" ]]; then
             echo "Renaming Linux executable..."
             mv dist/loteria-gerador dist/loteria-gerador-linux
           fi
