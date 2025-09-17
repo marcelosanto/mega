@@ -48,8 +48,8 @@ jobs:
       - name: Build executable with PyInstaller
         shell: bash
         run: |
-          # --- CORREÇÃO FINAL AQUI: Adicionado --paths 'src' ---
-          BASE_CMD="poetry run pyinstaller --name loteria-gerador --onefile --windowed --add-data src/assets${{ matrix.data-separator }}assets --paths 'src' src/main.py"
+          # --- CORREÇÃO DEFINITIVA: Removidas as aspas de --paths ---
+          BASE_CMD="poetry run pyinstaller --name loteria-gerador --onefile --windowed --add-data src/assets${{ matrix.data-separator }}assets --paths src src/main.py"
           
           $BASE_CMD
 
@@ -86,7 +86,7 @@ jobs:
           name: Release v1.0.${{ github.run_number }}
           body: "Automated release with builds for Linux and Windows."
           draft: false
-          prererelease: false
+          prerelease: false
           files: |
             dist/linux-build/loteria-gerador-linux
             dist/windows-build/loteria-gerador.exe
