@@ -1,6 +1,5 @@
 /build
 /dist
-*.spec
 *.db
 /__pycache__
 loteria-gerador-linux
