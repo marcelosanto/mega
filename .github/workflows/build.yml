@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04 # <-- CORRIGIDO AQUI
             platform: linux
             artifact-name: loteria-gerador-linux
             data-separator: ":"
@@ -36,7 +36,7 @@ jobs:
           python-version: '3.12'
 
       - name: Install Linux dependencies
-        if: matrix.os == 'ubuntu-22.04'
+        if: matrix.os == 'ubuntu-24.04' # <-- CORRIGIDO AQUI
         run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.0-dev
 
       - name: Install Poetry
@@ -48,12 +48,11 @@ jobs:
       - name: Build executable with PyInstaller
         shell: bash
         run: |
-          # --- CORREÇÃO DEFINITIVA: Removidas as aspas de --paths ---
           BASE_CMD="poetry run pyinstaller --name loteria-gerador --onefile --windowed --add-data src/assets${{ matrix.data-separator }}assets --paths src src/main.py"
           
           $BASE_CMD
 
-          if [[ "${{ matrix.os }}" == "ubuntu-22.04" ]]; then
+          if [[ "${{ matrix.os }}" == "ubuntu-24.04" ]]; then # <-- CORRIGIDO AQUI
             echo "Renaming Linux executable..."
             mv dist/loteria-gerador dist/loteria-gerador-linux
           fi
