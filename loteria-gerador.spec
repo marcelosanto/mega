@@ -13,9 +13,9 @@ EXCLUDED_LIBS = [
 
 a = Analysis(
     ['src/main.py'],
-    pathex=['src'],  # Adiciona 'src' ao caminho de busca de módulos
+    pathex=['src'],
     binaries=[],
-    datas=[('src/assets', 'assets')], # Adiciona la pasta de assets
+    datas=[('src/assets', 'assets')],
     hiddenimports=[],
     hookspath=[],
     runtime_hooks=[],
@@ -38,7 +38,7 @@ pyz = PYZ(a.pure, a.zipped_data, cipher=None)
 exe = EXE(
     pyz,
     a.scripts,
-    filtered_binaries, # Usa a lista de binários filtrada
+    filtered_binaries,
     a.zipfiles,
     a.datas,
     [],
@@ -49,7 +49,7 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=False, # Equivalente a --windowed
+    console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
@@ -57,16 +57,5 @@ exe = EXE(
     entitlements_file=None,
 )
 
-# --- SEÇÃO CORRIGIDA ---
-# Os parâmetros 'strip' e 'upx' são passados diretamente para a função,
-# e não lidos do objeto 'a'.
-coll = COLLECT(
-    exe,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
-    strip=False,
-    upx=True,
-    upx_exclude=[],
-    name='loteria-gerador'
-)
+# A seção COLLECT foi removida pois não é necessária para um build --onefile
+# e estava causando o erro de empacotamento.
