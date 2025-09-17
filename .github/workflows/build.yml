@@ -50,14 +50,12 @@ jobs:
         run: poetry install --no-root
 
       # Gera o executável com PyInstaller (substituindo o "flet build")
+      # --- ESTA É A ÚNICA SEÇÃO ALTERADA ---
       - name: Build executable with PyInstaller
-        run: |
-          poetry run pyinstaller --name lottery_generator \
-            --onefile \
-            --windowed \
-            --add-data "src/assets${{ matrix.data-separator }}assets" \
-            --paths "src" \
-            src/main.py
+        run: >
+          poetry run pyinstaller --name lottery_generator --onefile --windowed
+          --add-data "src/assets${{ matrix.data-separator }}assets"
+          --paths "src" src/main.py
 
       - name: List build output
         run: ls -R dist
