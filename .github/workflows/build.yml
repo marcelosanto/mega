@@ -53,7 +53,7 @@ jobs:
       # --- ESTA É A ÚNICA SEÇÃO ALTERADA ---
       - name: Build executable with PyInstaller
         run: >
-          poetry run pyinstaller --name loteria-gerador-linux --onefile --windowed
+          poetry run pyinstaller --name loteria-gerador --onefile --windowed
           --add-data "src/assets${{ matrix.data-separator }}assets"
           --paths "src" src/main.py
 
