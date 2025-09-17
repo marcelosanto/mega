@@ -15,13 +15,13 @@ jobs:
         include:
           - os: ubuntu-22.04
             platform: linux
+            # --- NOME FINAL DESEJADO PARA LINUX ---
             artifact-name: loteria-gerador-linux
-            # O separador de dados para PyInstaller no Linux é ":"
             data-separator: ":"
           - os: windows-2022
             platform: windows
+            # --- NOME FINAL DESEJADO PARA WINDOWS ---
             artifact-name: loteria-gerador.exe
-            # O separador de dados para PyInstaller no Windows é ";"
             data-separator: ";"
 
     runs-on: ${{ matrix.os }}
@@ -37,7 +37,6 @@ jobs:
         with:
           python-version: '3.12'
 
-      # Dependências do sistema para o backend WebView do Flet (WebKitGTK)
       - name: Install Linux dependencies
         if: matrix.os == 'ubuntu-22.04'
         run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.0-dev
@@ -45,22 +44,29 @@ jobs:
       - name: Install Poetry
         run: pip install poetry
 
-      # Instala dependências do projeto, incluindo flet_desktop e pyinstaller
       - name: Install project dependencies
         run: poetry install --no-root
 
-      # Gera o executável com PyInstaller (substituindo o "flet build")
-      # --- ESTA É A ÚNICA SEÇÃO ALTERADA ---
+      # --- ETAPA DE BUILD ALTERADA ---
       - name: Build executable with PyInstaller
-        run: >
-          poetry run pyinstaller --name loteria-gerador --onefile --windowed
-          --add-data "src/assets${{ matrix.data-separator }}assets"
-          --paths "src" src/main.py
+        # Usamos 'if' para ter comandos específicos por OS
+        shell: bash
+        run: |
+          # Comando base para o PyInstaller
+          BASE_CMD="poetry run pyinstaller --name loteria-gerador --onefile --windowed --add-data 'src/assets${{ matrix.data-separator }}assets' --paths 'src' src/main.py"
+
+          # Executa o comando de build
+          $BASE_CMD
+
+          # Passo extra APENAS para Linux: Renomeia o arquivo gerado
+          if [[ "${{ matrix.os }}" == "ubuntu-22.04" ]]; then
+            echo "Renaming Linux executable..."
+            mv dist/loteria-gerador dist/loteria-gerador-linux
+          fi
 
       - name: List build output
         run: ls -R dist
 
-      # Faz o upload do executável final
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -88,6 +94,7 @@ jobs:
           draft: false
           prerelease: false
           files: |
+            # --- NOMES FINAIS PARA A RELEASE ---
             dist/linux-build/loteria-gerador-linux
             dist/windows-build/loteria-gerador.exe
         env:

@@ -5,6 +5,7 @@ import shutil
 import tempfile
 import logging
 from packaging import version
+import sys
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -13,8 +14,6 @@ logger = logging.getLogger(__name__)
 class UpdateManager:
     """
     Manages application updates by checking a GitHub repository for new releases.
-    This class is UI-agnostic and returns structured data (dictionaries)
-    to be interpreted by the UI layer (e.g., Flet).
     """
 
     def __init__(self, current_version: str, repo_url: str):
@@ -23,15 +22,21 @@ class UpdateManager:
             "https://github.com/", "https://api.github.com/repos/")
         self.platform = platform.system().lower()
 
-        # Determine the expected executable name based on the OS
+        # --- NOMES AJUSTADOS PARA COMPATIBILIDADE ---
         if self.platform == "windows":
             self.executable_name = "loteria-gerador.exe"
-            self.current_executable_path = os.path.realpath(
-                os.path.join(os.getcwd(), self.executable_name))
         else:  # linux, darwin (macOS)
             self.executable_name = "loteria-gerador-linux"
-            self.current_executable_path = os.path.realpath(
-                os.path.join(os.getcwd(), self.executable_name))
+
+        # Lógica para encontrar o caminho do executável original (e não o temporário do PyInstaller)
+        self.current_executable_path = os.path.join(
+            os.getcwd(), self.executable_name)
+        # Uma verificação extra para o caso de o nome do arquivo ser diferente de sys.argv[0]
+        if not os.path.exists(self.current_executable_path) and hasattr(sys, 'argv'):
+            self.current_executable_path = os.path.join(
+                os.getcwd(), os.path.basename(sys.argv[0]))
+
+    # ... (o resto da sua classe não precisa de alterações) ...
 
     def _get_latest_release_data(self):
         """Fetches the latest release data from the GitHub API."""
@@ -80,38 +85,63 @@ class UpdateManager:
 
     def download_and_install(self, download_url: str):
         """
-        Downloads the new executable and replaces the current one.
-        Returns a dictionary indicating success or failure.
+        Downloads the new executable, creates an updater script,
+        and returns instructions for the UI to exit the application.
         """
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_executable_path = os.path.join(temp_dir, self.executable_name)
+        try:
+            update_filename = self.current_executable_path + ".new"
+            logger.info(f"Downloading update to {update_filename}")
 
-            # 1. Download the file
-            try:
-                logger.info(
-                    f"Downloading from {download_url} to {temp_executable_path}")
-                response = requests.get(download_url, stream=True, timeout=30)
-                response.raise_for_status()
-                with open(temp_executable_path, "wb") as f:
-                    for chunk in response.iter_content(chunk_size=8192):
-                        f.write(chunk)
-                logger.info("Download complete.")
-            except requests.RequestException as e:
-                logger.error(f"Failed to download file: {e}")
-                return {"success": False, "error": f"Download failed: {e}"}
+            response = requests.get(download_url, stream=True, timeout=60)
+            response.raise_for_status()
+            with open(update_filename, "wb") as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
+            logger.info("Download complete.")
 
-            # Make executable on Linux/macOS
             if self.platform != "windows":
-                os.chmod(temp_executable_path, 0o755)
+                os.chmod(update_filename, 0o755)
 
-            # 2. Replace the old executable
-            try:
-                logger.info(
-                    f"Replacing old executable at {self.current_executable_path}")
-                # Use shutil.move for robustness, especially across different filesystems
-                shutil.move(temp_executable_path, self.current_executable_path)
-                logger.info("Executable replaced successfully.")
-                return {"success": True, "error": None}
-            except (OSError, shutil.Error) as e:
-                logger.error(f"Failed to replace executable: {e}")
-                return {"success": False, "error": f"Could not replace the application file. Please check permissions. Error: {e}"}
+            if self.platform == "windows":
+                script_path = os.path.join(os.getcwd(), "update.bat")
+                script_content = f"""
+@echo off
+echo Updating application... please wait.
+timeout /t 2 /nobreak > nul
+del "{self.current_executable_path}"
+move "{update_filename}" "{self.current_executable_path}"
+start "" "{self.current_executable_path}"
+del "{script_path}"
+"""
+            else:  # Linux/macOS
+                script_path = os.path.join(os.getcwd(), "update.sh")
+                script_content = f"""
+#!/bin/bash
+echo "Updating application... please wait."
+sleep 2
+rm "{self.current_executable_path}"
+mv "{update_filename}" "{self.current_executable_path}"
+chmod +x "{self.current_executable_path}"
+nohup "{self.current_executable_path}" &
+rm -- "$0"
+"""
+
+            with open(script_path, "w") as f:
+                f.write(script_content)
+
+            if self.platform != "windows":
+                os.chmod(script_path, 0o755)
+
+            import subprocess
+            logger.info(f"Executing updater script: {script_path}")
+            if self.platform == "windows":
+                subprocess.Popen(
+                    [script_path], creationflags=subprocess.CREATE_NEW_CONSOLE)
+            else:
+                subprocess.Popen([script_path], preexec_fn=os.setpgrp)
+
+            return {"success": True, "error": None, "action": "restart"}
+
+        except Exception as e:
+            logger.error(f"An error occurred during update: {e}")
+            return {"success": False, "error": f"An unexpected error occurred: {e}", "action": None}
