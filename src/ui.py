@@ -178,7 +178,12 @@ class LoteriaUI:
                 )
                 self.numeros_container.controls.append(
                     ft.Container(
-                        ft.Column([ft.Text(f"Jogo {i+1}", weight="bold"), bola_row]),
+                        ft.Column(
+                            [
+                                ft.Text(f"Jogo {i+1}", weight="bold", color="black"),
+                                bola_row,
+                            ]
+                        ),
                         padding=15,
                         border_radius=8,
                         border=ft.border.all(1, "#e0e0e0"),
@@ -311,7 +316,7 @@ class LoteriaUI:
 
             table = ft.DataTable(
                 columns=[
-                    ft.DataColumn(ft.Text(c, color="black"))
+                    ft.DataColumn(ft.Text(c))
                     for c in ["ID", "Loteria", "Método", "Preço", "Data"]
                 ],
                 rows=rows,
@@ -525,11 +530,18 @@ class LoteriaUI:
         self.bolao_container = ft.Row(
             [
                 ft.TextField(
-                    ref=self.app.num_jogos, label="Nº Jogos", value="1", expand=True
+                    ref=self.app.num_jogos,
+                    label="Nº Jogos",
+                    label_style=ft.TextStyle(color="black"),
+                    color="black",
+                    value="1",
+                    expand=True,
                 ),
                 ft.TextField(
                     ref=self.app.num_participantes,
                     label="Participantes",
+                    label_style=ft.TextStyle(color="black"),
+                    color="black",
                     value="1",
                     expand=True,
                 ),
@@ -567,7 +579,7 @@ class LoteriaUI:
                                 on_click=self.mostrar_grafico,
                             ),
                             ft.IconButton(
-                                icon=ft.Icons.HISTORY_ROUNDED,
+                                icon=ft.Icons.HISTORY,
                                 tooltip="Histórico",
                                 on_click=self.abrir_historico,
                             ),
@@ -592,6 +604,7 @@ class LoteriaUI:
                     ft.Dropdown(
                         ref=self.app.loteria,
                         label="Loteria",
+                        label_style=ft.TextStyle(color="black"),
                         color="black",
                         bgcolor="white",
                         options=[
@@ -604,6 +617,7 @@ class LoteriaUI:
                     ft.Dropdown(
                         ref=self.app.metodo,
                         label="Método",
+                        label_style=ft.TextStyle(color="black"),
                         color="black",
                         bgcolor="white",
                         options=[
@@ -620,6 +634,7 @@ class LoteriaUI:
                     ft.Checkbox(
                         ref=self.app.is_bolao,
                         label="É um Bolão?",
+                        label_style=ft.TextStyle(color="black"),
                         on_change=self.toggle_bolao,
                     ),
                     self.bolao_container,
