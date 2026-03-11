@@ -7,3 +7,5 @@ loteria_historico.db
 src/__pycache__
 src/teste.py
 poetry.lock
+update.sh
+main.py.new

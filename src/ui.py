@@ -106,7 +106,6 @@ class LoteriaUI:
                 duration=duration,
             )
         )
-        # self.page.snack_bar.open = True
         self.page.update()
 
     def close_dialog(self, e=None):
@@ -121,8 +120,15 @@ class LoteriaUI:
         self.dezenas_slider.max = config["max_dezenas"]
         self.dezenas_slider.value = config["min_dezenas"]
         self.atualizar_label_dezenas()
+        
+        # Limpa e reconstrói as abas de info e dicas separadamente
         self.info_content.controls.clear()
-        self.info_content.controls.extend(self.build_info_cards(config))
+        self.dicas_content.controls.clear()
+        
+        cards = self.build_info_cards(config)
+        self.info_content.controls.append(cards[0]) # Card de Informações
+        self.dicas_content.controls.append(cards[1]) # Card de Dicas
+        
         self.carregar_dados()
         self.page.update()
 
@@ -278,10 +284,8 @@ class LoteriaUI:
             content=chart,
             actions=[ft.TextButton("Fechar", on_click=self.close_dialog)],
         )
-
-        # APLICA A CORREÇÃO AQUI:
-        self.page.dialog = dialog  # Atribuir o diálogo à página
-        self.page.open(dialog)  # Abrir com page.open()
+        self.page.dialog = dialog
+        self.page.open(dialog)
 
     def abrir_historico(self, e):
         try:
@@ -328,10 +332,8 @@ class LoteriaUI:
                 content=ft.Container(content=table, width=700, height=400),
                 actions=[ft.TextButton("Fechar", on_click=self.close_dialog)],
             )
-
-            # APLICA A CORREÇÃO AQUI:
-            self.page.dialog = dialog  # Atribuir o diálogo à página
-            self.page.open(dialog)  # Abrir com page.open()
+            self.page.dialog = dialog
+            self.page.open(dialog)
 
         except Exception as ex:
             self.logger.error(f"Erro ao abrir histórico: {ex}")
@@ -380,8 +382,7 @@ class LoteriaUI:
             ],
         )
         self.page.dialog = dialog
-        dialog.open = True
-        self.page.update()
+        self.page.open(dialog)
 
     def show_restart_dialog(self):
         dialog = ft.AlertDialog(
@@ -391,8 +392,7 @@ class LoteriaUI:
             actions=[ft.ElevatedButton("OK", on_click=self.close_dialog)],
         )
         self.page.dialog = dialog
-        dialog.open = True
-        self.page.update()
+        self.page.open(dialog)
 
     def build_info_cards(self, config):
         return [
@@ -402,7 +402,7 @@ class LoteriaUI:
                         ft.Row(
                             [
                                 ft.Icon(ft.Icons.INFO_ROUNDED, color="#3b82f6"),
-                                ft.Text("Informações", weight="bold", color="black"),
+                                ft.Text("Configurações Atuais", weight="bold", color="black"),
                             ],
                             spacing=10,
                         ),
@@ -431,9 +431,7 @@ class LoteriaUI:
                     spacing=8,
                 ),
                 bgcolor="white",
-                border_radius=8,
-                padding=15,
-                border=ft.border.all(1, "#e5e7eb"),
+                padding=5,
             ),
             ft.Container(
                 content=ft.Column(
@@ -441,22 +439,22 @@ class LoteriaUI:
                         ft.Row(
                             [
                                 ft.Icon(ft.Icons.LIGHTBULB_ROUNDED, color="#f59e0b"),
-                                ft.Text("Dicas", weight="bold", color="black"),
+                                ft.Text("Dicas Úteis", weight="bold", color="black"),
                             ],
                             spacing=10,
                         ),
                         ft.Divider(height=1),
                         ft.Text(
-                            "• Mais números = maior custo e maior chance.",
+                            "• Mais números = maior custo e maior chance.\n"
+                            "• Use o método Probabilístico para balancear frequência.\n"
+                            "• O histórico ajuda a acompanhar seus gastos.",
                             color="black",
                         ),
                     ],
                     spacing=8,
                 ),
                 bgcolor="white",
-                border_radius=8,
-                padding=15,
-                border=ft.border.all(1, "#e5e7eb"),
+                padding=5,
             ),
         ]
 
@@ -487,6 +485,7 @@ class LoteriaUI:
         page.window_minimizable = True
         page.window_maximizable = True
 
+        # Referências
         self.app.loteria = ft.Ref[ft.Dropdown]()
         self.app.num_dezenas = ft.Ref[ft.Slider]()
         self.app.metodo = ft.Ref[ft.Dropdown]()
@@ -494,6 +493,7 @@ class LoteriaUI:
         self.app.num_jogos = ft.Ref[ft.TextField]()
         self.app.num_participantes = ft.Ref[ft.TextField]()
 
+        # Elementos de UI
         self.dezenas_slider = ft.Slider(
             ref=self.app.num_dezenas,
             min=6,
@@ -503,15 +503,15 @@ class LoteriaUI:
             on_change=self.atualizar_label_dezenas,
         )
         self.dezenas_info = ft.Text("R$ 5.00", color="#059669", weight="bold")
-        self.info_content = ft.Column(
-            spacing=15, scroll=ft.ScrollMode.AUTO, expand=True
-        )
-        self.resumo_content = ft.Column(
-            spacing=15, scroll=ft.ScrollMode.AUTO, expand=True
-        )
-        self.numeros_container = ft.Column(
-            spacing=15, scroll=ft.ScrollMode.AUTO, expand=True
-        )
+        
+        # Containers de conteúdo para as abas
+        self.info_content = ft.Column(spacing=15, scroll=ft.ScrollMode.AUTO)
+        self.dicas_content = ft.Column(spacing=15, scroll=ft.ScrollMode.AUTO)
+        self.resumo_content = ft.Column(spacing=15, scroll=ft.ScrollMode.AUTO)
+        
+        # Container de números (agora fica no topo)
+        self.numeros_container = ft.Column(spacing=15, scroll=ft.ScrollMode.AUTO, expand=True)
+
         self.gerar_btn = ft.ElevatedButton(
             "🎲 Gerar Números",
             bgcolor="#3b82f6",
@@ -650,53 +650,57 @@ class LoteriaUI:
             col={"xs": 12, "md": 4, "lg": 3},
         )
 
+        # COMPONENTE DE ABAS PARA DETALHES
+        tabs_detalhes = ft.Tabs(
+            selected_index=0,
+            animation_duration=300,
+            tabs=[
+                ft.Tab(
+                    text="Informações",
+                    icon=ft.Icons.INFO_OUTLINED,
+                    content=ft.Container(content=self.info_content, padding=15),
+                ),
+                ft.Tab(
+                    text="Dicas",
+                    icon=ft.Icons.LIGHTBULB_OUTLINE,
+                    content=ft.Container(content=self.dicas_content, padding=15),
+                ),
+                ft.Tab(
+                    text="Resumo",
+                    icon=ft.Icons.MONETIZATION_ON_OUTLINED,
+                    content=ft.Container(content=self.resumo_content, padding=15),
+                ),
+            ],
+            expand=True,
+        )
+
         right_panel = ft.Column(
             [
-                ft.ResponsiveRow(
-                    [
-                        ft.Container(
-                            content=ft.Column(
-                                [
-                                    ft.Text(
-                                        "ℹ️ Informações", weight="w600", color="black"
-                                    ),
-                                    self.info_content,
-                                ]
-                            ),
-                            padding=20,
-                            border_radius=8,
-                            bgcolor="white",
-                            col={"xs": 12, "lg": 6},
-                            expand=True,
-                        ),
-                        ft.Container(
-                            content=ft.Column(
-                                [
-                                    ft.Text("💰 Resumo", weight="w600", color="black"),
-                                    self.resumo_content,
-                                ]
-                            ),
-                            padding=20,
-                            border_radius=8,
-                            bgcolor="white",
-                            col={"xs": 12, "lg": 6},
-                            expand=True,
-                        ),
-                    ],
-                    vertical_alignment=ft.CrossAxisAlignment.START,
-                    spacing=20,
-                ),
+                # SEÇÃO SUPERIOR: NÚMEROS GERADOS
                 ft.Container(
                     content=ft.Column(
                         [
-                            ft.Text("🎯 Números Gerados", weight="w600", color="black"),
+                            ft.Row([
+                                ft.Text("🎯 Números Gerados", weight="w600", color="black", size=18),
+                            ]),
                             self.numeros_container,
                         ]
                     ),
                     padding=20,
                     border_radius=8,
                     bgcolor="white",
+                    height=450,
+                    border=ft.border.all(1, "#e5e7eb"),
+                ),
+                
+                # SEÇÃO INFERIOR: TABS COM INFO, DICAS E RESUMO
+                ft.Container(
+                    content=tabs_detalhes,
+                    padding=5,
+                    border_radius=8,
+                    bgcolor="white",
                     expand=True,
+                    border=ft.border.all(1, "#e5e7eb"),
                 ),
             ],
             spacing=20,
