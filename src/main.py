@@ -2,7 +2,7 @@ import flet as ft
 from ui import LoteriaUI
 from database import DatabaseManager
 from updates import UpdateManager
-from config import LOTTERY_CONFIG, VERSION, UPDATE_BASE_URL
+from config import VERSION, UPDATE_BASE_URL
 
 
 class LoteriaApp:
