@@ -9,6 +9,7 @@ import subprocess
 # Configure logging
 logger = logging.getLogger(__name__)
 
+
 class UpdateManager:
     """
     Manages application updates by checking a GitHub repository for new releases.
@@ -16,18 +17,20 @@ class UpdateManager:
 
     def __init__(self, current_version: str, repo_url: str):
         self.current_version = version.parse(current_version)
-        self.repo_url = repo_url.replace("https://github.com/", "https://api.github.com/repos/")
+        self.repo_url = repo_url.replace(
+            "https://github.com/", "https://api.github.com/repos/"
+        )
         self.platform = platform.system().lower()
 
         # --- LÓGICA INFALÍVEL PARA ACHAR O EXECUTÁVEL ---
         # Quando compilado com Flet/PyInstaller, sys.frozen é True e sys.executable aponta pro arquivo real
-        if getattr(sys, 'frozen', False):
+        if getattr(sys, "frozen", False):
             self.current_executable_path = os.path.abspath(sys.executable)
         else:
             self.current_executable_path = os.path.abspath(sys.argv[0])
 
         self.base_dir = os.path.dirname(self.current_executable_path)
-        
+
         # Nomes dos arquivos de release no Github
         if self.platform == "windows":
             self.executable_name = "loteria-gerador.exe"
@@ -49,7 +52,10 @@ class UpdateManager:
         release_data = self._get_latest_release_data()
 
         if release_data.get("error"):
-            return {"update_available": False, "error": f"Could not connect to the update server: {release_data['error']}"}
+            return {
+                "update_available": False,
+                "error": f"Could not connect to the update server: {release_data['error']}",
+            }
 
         latest_version_str = release_data.get("tag_name", "0.0.0").lstrip("v")
         latest_version = version.parse(latest_version_str)
@@ -63,13 +69,16 @@ class UpdateManager:
                     break
 
             if not download_url:
-                return {"update_available": False, "error": f"Update found, but no download file available for your platform ({self.platform})."}
+                return {
+                    "update_available": False,
+                    "error": f"Update found, but no download file available for your platform ({self.platform}).",
+                }
 
             return {
                 "update_available": True,
                 "version": str(latest_version),
                 "notes": release_data.get("body", "No release notes provided."),
-                "download_url": download_url
+                "download_url": download_url,
             }
         else:
             logger.info("Application is up to date.")
@@ -87,14 +96,10 @@ class UpdateManager:
                     f.write(chunk)
             logger.info("Download complete.")
 
-            if self.platform != "windows":
-                os.chmod(update_filename, 0o755)
-
             # --- CRIAÇÃO DOS SCRIPTS COM CAMINHOS ABSOLUTOS ---
             if self.platform == "windows":
                 script_path = os.path.join(self.base_dir, "update.bat")
                 script_content = f"""@echo off
-echo Atualizando o Loterias Pro... aguarde.
 timeout /t 3 /nobreak > nul
 del /f /q "{self.current_executable_path}"
 move /y "{update_filename}" "{self.current_executable_path}"
@@ -103,29 +108,39 @@ del "%~f0"
 """
             else:  # Linux/macOS
                 script_path = os.path.join(self.base_dir, "update.sh")
+                # Script em Linux muito mais robusto e silencioso
                 script_content = f"""#!/bin/bash
-echo "Atualizando o Loterias Pro... aguarde."
 sleep 3
 rm -f "{self.current_executable_path}"
 mv -f "{update_filename}" "{self.current_executable_path}"
 chmod +x "{self.current_executable_path}"
 nohup "{self.current_executable_path}" > /dev/null 2>&1 &
-rm -f "$0"
+rm -f "{script_path}"
 """
 
             with open(script_path, "w") as f:
                 f.write(script_content)
 
             if self.platform != "windows":
+                # Garante permissão no arquivo temporário e no script
+                os.chmod(update_filename, 0o755)
                 os.chmod(script_path, 0o755)
 
             logger.info(f"Executing updater script: {script_path}")
-            
-            # Executa o script desacoplado do processo atual
+
+            # Executa o script de forma garantida e desacoplada
             if self.platform == "windows":
-                subprocess.Popen([script_path], creationflags=subprocess.CREATE_NEW_CONSOLE)
+                subprocess.Popen(
+                    [script_path], creationflags=subprocess.CREATE_NEW_CONSOLE
+                )
             else:
-                subprocess.Popen([script_path], start_new_session=True)
+                # FORÇA a chamada via bash e anula as saídas para não travar o fechamento
+                subprocess.Popen(
+                    ["bash", script_path],
+                    start_new_session=True,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
 
             return True
 
