@@ -43,10 +43,7 @@ class LoteriaUI:
             self.app.freq = np.zeros(config["num_total"], dtype=int)
 
     def _atualizar_frequencia_app(self, df, config):
-        # Captura os números do Sorteio Principal
         nums = df[config["colunas_numeros"]].values.flatten()
-
-        # Se for Dupla Sena, combina estatísticas do Sorteio 1 e Sorteio 2
         if "colunas_numeros_2" in config:
             nums2 = df[config["colunas_numeros_2"]].values.flatten()
             nums = np.concatenate([nums, nums2])
@@ -76,7 +73,12 @@ class LoteriaUI:
         loteria = self.app.loteria.current.value
         config = self.config_loteria[loteria]
         try:
-            if len(self.app.freq) == 0 or np.all(self.app.freq == 0):
+            # Se for Surpresinha ou não tiver dados, faz sorteio 100% aleatório
+            if (
+                metodo == "surpresinha"
+                or len(self.app.freq) == 0
+                or np.all(self.app.freq == 0)
+            ):
                 return sorted(
                     np.random.choice(
                         range(1, config["num_total"] + 1),
@@ -85,22 +87,33 @@ class LoteriaUI:
                     ).tolist()
                 )
 
-            numeros_ordenados = np.argsort(self.app.freq)[::-1] + 1
+            numeros_ordenados = (
+                np.argsort(self.app.freq)[::-1] + 1
+            )  # Mais frequentes no início
+
+            # Define o tamanho do "pote" de números a considerar
+            if loteria == "Loto Mania":
+                limite = 75
+            elif loteria in ["Mega-Sena", "Quina", "Dupla Sena"]:
+                limite = 40
+            else:
+                limite = 20
+            limite = max(
+                limite, num_dezenas + 5
+            )  # Garante que haja números suficientes
+
             if metodo == "top_frequentes":
-                # CORREÇÃO PARA A LOTO MANIA E DEMAIS JOGOS
-                if loteria == "Loto Mania":
-                    limite = 75  # Tem que ser maior que 50 para poder gerar
-                elif loteria in ["Mega-Sena", "Quina", "Dupla Sena"]:
-                    limite = 40
-                else:
-                    limite = 20  # Loto Fácil
-
-                # Garante que o limite seja sempre maior que a qtde de dezenas pedidas
-                limite = max(limite, num_dezenas + 5)
-
+                # Pega os primeiros do ranking (os que mais saem)
                 top = numeros_ordenados[:limite]
                 selecionados = np.random.choice(top, size=num_dezenas, replace=False)
-            else:
+
+            elif metodo == "menos_frequentes":
+                # Pega os últimos do ranking (os que menos saem / mais atrasados)
+                frias = numeros_ordenados[-limite:]
+                selecionados = np.random.choice(frias, size=num_dezenas, replace=False)
+
+            elif metodo == "probabilistico":
+                # Sorteio viciado: quem sai mais tem maior probabilidade de ser escolhido
                 probs = self.app.freq / self.app.freq.sum()
                 selecionados = np.random.choice(
                     range(1, config["num_total"] + 1),
@@ -108,6 +121,7 @@ class LoteriaUI:
                     replace=False,
                     p=probs,
                 )
+
             return sorted([int(x) for x in selecionados])
         except Exception as ex:
             self.logger.error(f"Erro gerar_numeros: {ex}")
@@ -129,7 +143,7 @@ class LoteriaUI:
         for i, jogo in enumerate(self.app.jogos_atuais, 1):
             texto += f"Jogo {i:02d}: {' - '.join(f'{n:02d}' for n in jogo)}\n"
         self.page.set_clipboard(texto)
-        self.show_snackbar("📋 Copiado!", "#3b82f6")
+        self.show_snackbar("📋 Copiado para área de transferência!", "#3b82f6")
 
     def exportar_excel(self, e):
         if not self.app.jogos_atuais:
@@ -145,7 +159,7 @@ class LoteriaUI:
         backup = self.app.jogos_atuais
         self.app.jogos_atuais = [numeros]
         if self.app.db_manager.salvar_no_banco(self.app, "Manual"):
-            self.show_snackbar("✅ Salvo!", "#10b981")
+            self.show_snackbar("✅ Jogo salvo no Histórico!", "#10b981")
         self.app.jogos_atuais = backup
 
     def atualizar_dezenas(self, e):
@@ -160,27 +174,6 @@ class LoteriaUI:
         self.dezenas_slider.disabled = min_v == max_v
         self.dezenas_slider.label = "{value} dezenas"
 
-        self.info_content.controls.clear()
-        self.info_content.controls.append(
-            ft.Column(
-                [
-                    ft.Text(
-                        f"Loteria: {loteria}", color="black", weight="bold", size=18
-                    ),
-                    ft.Text(
-                        f"• Preço Base: R$ {config['preco_base']:.2f}",
-                        color="black",
-                        size=16,
-                    ),
-                    ft.Text(
-                        f"• Dezenas Sorteadas: {config['num_sorteados']}",
-                        color="black",
-                        size=16,
-                    ),
-                ],
-                spacing=8,
-            )
-        )
         self.atualizar_label_dezenas()
         self.carregar_dados()
         self.page.update()
@@ -226,13 +219,26 @@ class LoteriaUI:
                                             size=18,
                                             color="black",
                                         ),
-                                        ft.IconButton(
-                                            ft.Icons.SAVE,
-                                            icon_color="#10b981",
-                                            on_click=lambda _, n=nums: self.salvar_jogo_individual(
-                                                n
-                                            ),
-                                            tooltip="Salvar Jogo",
+                                        ft.Row(
+                                            [
+                                                ft.IconButton(
+                                                    ft.Icons.INSERT_CHART_OUTLINED,
+                                                    icon_color="#3b82f6",
+                                                    tooltip="Analisar Força do Jogo",
+                                                    on_click=lambda _, n=nums: self.analisar_jogo(
+                                                        n
+                                                    ),
+                                                ),
+                                                ft.IconButton(
+                                                    ft.Icons.SAVE_OUTLINED,
+                                                    icon_color="#10b981",
+                                                    tooltip="Salvar no Histórico",
+                                                    on_click=lambda _, n=nums: self.salvar_jogo_individual(
+                                                        n
+                                                    ),
+                                                ),
+                                            ],
+                                            spacing=0,
                                         ),
                                     ],
                                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
@@ -273,32 +279,44 @@ class LoteriaUI:
 
             custo = self.calcular_preco(int(self.dezenas_slider.value)) * num_jogos
             part = int(self.app.num_participantes.current.value or 1)
+
+            # Resumo Financeiro mais limpo
             self.resumo_content.controls.append(
-                ft.Column(
+                ft.Row(
                     [
-                        ft.Text(
-                            f"Custo Total: R$ {custo:.2f}",
-                            color="black",
-                            weight="bold",
-                            size=18,
+                        ft.Column(
+                            [
+                                ft.Text(f"Custo Total", color="#475569", size=14),
+                                ft.Text(
+                                    f"R$ {custo:.2f}",
+                                    color="black",
+                                    weight="bold",
+                                    size=22,
+                                ),
+                            ],
+                            expand=True,
                         ),
-                        ft.Text(
-                            f"Custo por Pessoa: R$ {custo/part:.2f}",
-                            color="#059669",
-                            weight="bold",
-                            size=20,
+                        ft.Column(
+                            [
+                                ft.Text(f"Custo por Pessoa", color="#475569", size=14),
+                                ft.Text(
+                                    f"R$ {custo/part:.2f}",
+                                    color="#059669",
+                                    weight="bold",
+                                    size=22,
+                                ),
+                            ],
+                            expand=True,
                         ),
-                        ft.Divider(),
                         ft.ElevatedButton(
-                            "📊 Exportar Resumo para Excel",
-                            icon=ft.Icons.FILE_DOWNLOAD,
+                            "📊 Exportar Excel",
                             on_click=self.exportar_excel,
                             bgcolor="#1e7145",
                             color="white",
                             height=50,
                         ),
                     ],
-                    spacing=10,
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                 )
             )
             self.copiar_btn.visible = True
@@ -306,7 +324,73 @@ class LoteriaUI:
             self.gerar_btn.disabled = False
             self.page.update()
 
-    # CORREÇÃO DEFINITIVA NO MANEJO DOS DIÁLOGOS NO FLET NOVO
+    # ANÁLISE DE JOGO (GRÁFICO)
+    # ===================================================================
+    def analisar_jogo(self, jogo):
+        if self.df_atual is None:
+            self.show_snackbar("Aguarde o carregamento dos dados.", "#ef4444")
+            return
+
+        config = self.config_loteria[self.app.loteria.current.value]
+        fig, ax = plt.subplots(figsize=(10, 4.5))
+        fig.patch.set_facecolor("white")
+        ax.set_facecolor("white")
+
+        cores = ["#e2e8f0"] * config["num_total"]
+        for n in jogo:
+            if 1 <= n <= config["num_total"]:
+                cores[n - 1] = config["cor_bola"]
+
+        ax.bar(range(1, config["num_total"] + 1), self.app.freq, color=cores, width=0.8)
+
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        ax.spines["left"].set_color("#cbd5e1")
+        ax.spines["bottom"].set_color("#cbd5e1")
+        ax.set_xlabel("Dezenas", fontsize=11, color="#475569")
+        ax.set_ylabel("Frequência (Vezes Sorteado)", fontsize=11, color="#475569")
+        ax.tick_params(colors="#475569")
+
+        chart_box = ft.Container(
+            content=MatplotlibChart(fig, expand=True, transparent=True),
+            height=350,
+            padding=10,
+        )
+
+        legenda = ft.Row(
+            [
+                ft.Container(
+                    width=16, height=16, bgcolor=config["cor_bola"], border_radius=4
+                ),
+                ft.Text(
+                    "Dezenas do Jogo Selecionado", color="black", size=14, weight="bold"
+                ),
+                ft.Container(
+                    width=16,
+                    height=16,
+                    bgcolor="#e2e8f0",
+                    border_radius=4,
+                    margin=ft.margin.only(left=20),
+                ),
+                ft.Text("Histórico da Loteria", color="#475569", size=14),
+            ],
+            alignment=ft.MainAxisAlignment.CENTER,
+        )
+
+        dlg = ft.AlertDialog(
+            title=ft.Text(
+                f"Análise de Força do Jogo", weight="bold", color="black", size=22
+            ),
+            content=ft.Column([legenda, chart_box], width=900, height=420, spacing=15),
+            bgcolor="#ffffff",
+            shape=ft.RoundedRectangleBorder(radius=16),
+        )
+        dlg.actions = [
+            ft.TextButton("Fechar Gráfico", on_click=lambda e: self.page.close(dlg))
+        ]
+        self.page.open(dlg)
+
+    # HISTÓRICO E UPDATES
     # ===================================================================
     def abrir_historico(self, e):
         try:
@@ -315,20 +399,23 @@ class LoteriaUI:
             lista = ft.Column(spacing=12, scroll=ft.ScrollMode.AUTO, expand=True)
 
             dlg = ft.AlertDialog(
-                title=ft.Text("Meu Histórico", size=20, weight="bold", color="black"),
+                title=ft.Text(
+                    "Meus Jogos Registrados", size=22, weight="bold", color="black"
+                ),
                 content=ft.Container(
                     content=ft.Column(
                         [
                             ft.Row(
                                 [
+                                    ft.Icon(ft.Icons.MONETIZATION_ON, color="#059669"),
                                     ft.Text(
-                                        f"Total Gasto: R$ {stats.get('total_gasto', 0):.2f}",
+                                        f"Total Investido: R$ {stats.get('total_gasto', 0):.2f}",
                                         weight="bold",
                                         color="#059669",
                                         size=18,
-                                    )
+                                    ),
                                 ],
-                                alignment="center",
+                                alignment=ft.MainAxisAlignment.CENTER,
                             ),
                             ft.Divider(),
                             lista,
@@ -337,14 +424,14 @@ class LoteriaUI:
                     width=550,
                     height=600,
                 ),
+                bgcolor="#ffffff",
+                shape=ft.RoundedRectangleBorder(radius=16),
             )
-            # Para o flet novo: lambda do fechar precisa de referencia da instancia do dialógo
             dlg.actions = [
                 ft.TextButton("Fechar", on_click=lambda e: self.page.close(dlg))
             ]
 
             for j in jogos:
-                # O banco devolve a string [1, 2, 3] num array encadeado ou direto. Resolvemos:
                 nums_raw = json.loads(j[3])
                 nums = (
                     nums_raw[0]
@@ -374,7 +461,7 @@ class LoteriaUI:
                                                     size=16,
                                                 ),
                                                 ft.IconButton(
-                                                    ft.Icons.DELETE,
+                                                    ft.Icons.DELETE_OUTLINE,
                                                     icon_color="#ef4444",
                                                     on_click=lambda _, id=j[0]: (
                                                         self.app.db_manager.excluir_jogo(
@@ -413,68 +500,13 @@ class LoteriaUI:
                         ),
                         padding=15,
                         border_radius=12,
-                        bgcolor="white",
+                        bgcolor="#f8fafc",
                         border=ft.border.all(1, "#e2e8f0"),
                     )
                 )
             self.page.open(dlg)
         except Exception as ex:
             self.show_snackbar(f"Erro ao abrir histórico: {ex}", "#ef4444")
-
-    def mostrar_grafico(self, e):
-        if self.df_atual is None:
-            return
-        config = self.config_loteria[self.app.loteria.current.value]
-
-        def up_plot(n):
-            df_f = self.df_atual.head(n) if n > 0 else self.df_atual
-            nums = df_f[config["colunas_numeros"]].values.flatten()
-            if "colunas_numeros_2" in config:
-                nums2 = df_f[config["colunas_numeros_2"]].values.flatten()
-                nums = np.concatenate([nums, nums2])
-            nums = nums[~np.isnan(nums)].astype(int)
-            freq = np.bincount(nums, minlength=config["num_total"] + 1)[1:]
-
-            fig, ax = plt.subplots(figsize=(10, 5))
-            ax.bar(range(1, config["num_total"] + 1), freq, color="#cbd5e1")
-
-            if self.app.jogos_atuais:
-                curr = [n for j in self.app.jogos_atuais for n in j]
-                f_curr = np.bincount(curr, minlength=config["num_total"] + 1)[1:]
-                idx = [i for i, v in enumerate(f_curr) if v > 0]
-                ax.bar(
-                    [i + 1 for i in idx],
-                    [freq[i] for i in idx],
-                    color=config["cor_bola"],
-                )
-            ax.set_title(
-                f"Frequência - {self.app.loteria.current.value}", color="black"
-            )
-            chart_box.content = MatplotlibChart(fig, expand=True)
-            self.page.update()
-
-        chart_box = ft.Container(height=400)
-        dlg = ft.AlertDialog(
-            title=ft.Text("Análise Estatística", color="black", weight="bold"),
-            content=ft.Column(
-                [
-                    ft.Text("Filtro dos últimos concursos:", color="black", size=14),
-                    ft.Slider(
-                        min=0,
-                        max=200,
-                        divisions=20,
-                        label="{value} concursos",
-                        on_change=lambda e: up_plot(int(e.control.value)),
-                    ),
-                    chart_box,
-                ],
-                width=850,
-                height=500,
-            ),
-        )
-        dlg.actions = [ft.TextButton("Fechar", on_click=lambda e: self.page.close(dlg))]
-        self.page.open(dlg)
-        up_plot(0)
 
     def verificar_atualizacao_auto(self):
         threading.Thread(target=self._check_updates_worker, daemon=True).start()
@@ -485,17 +517,24 @@ class LoteriaUI:
             if res.get("update_available"):
                 dlg = ft.AlertDialog(
                     title=ft.Text(
-                        "Novo Update Disponível", color="black", weight="bold"
+                        "Atualização Disponível", color="black", weight="bold"
                     ),
                     content=ft.Text(
-                        f"A versão {res['version']} está pronta para instalar.",
+                        f"A versão {res['version']} do Loterias Pro já pode ser instalada.",
                         color="black",
+                        size=16,
                     ),
+                    bgcolor="#ffffff",
+                    shape=ft.RoundedRectangleBorder(radius=16),
                 )
                 dlg.actions = [
-                    ft.TextButton("Depois", on_click=lambda e: self.page.close(dlg)),
+                    ft.TextButton(
+                        "Lembrar mais tarde", on_click=lambda e: self.page.close(dlg)
+                    ),
                     ft.ElevatedButton(
-                        "Instalar",
+                        "Atualizar Agora",
+                        bgcolor="#3b82f6",
+                        color="white",
                         on_click=lambda e: (
                             self.page.close(dlg),
                             self.app.update_manager.download_and_install(
@@ -534,20 +573,21 @@ class LoteriaUI:
         )
         self.dezenas_info = ft.Text("R$ 5.00", color="#059669", weight="bold", size=18)
         self.numeros_grid = ft.ResponsiveRow(spacing=20, run_spacing=20)
-        self.info_content, self.resumo_content = ft.Column(), ft.Column()
+        self.resumo_content = ft.Column()
 
         lbl_style = ft.TextStyle(color="black", weight="bold", size=16)
 
         self.gerar_btn = ft.ElevatedButton(
-            "🎲 Gerar", bgcolor="#2563eb", color="white", expand=True, height=50
+            "🎲 Gerar Números", bgcolor="#2563eb", color="white", expand=True, height=50
         )
         self.gerar_btn.on_click = self.gerar_jogos
 
         self.limpar_btn = ft.ElevatedButton(
-            "🧹 Limpar", bgcolor="#cbd5e1", color="black", expand=True, height=50
+            "🧹 Limpar Mesa", bgcolor="#cbd5e1", color="black", expand=True, height=50
         )
         self.limpar_btn.on_click = lambda _: (
             self.numeros_grid.controls.clear(),
+            self.resumo_content.controls.clear(),
             page.update(),
         )
 
@@ -556,6 +596,7 @@ class LoteriaUI:
             on_click=self.copiar_jogos,
             visible=False,
             icon_color="black",
+            tooltip="Copiar todos os jogos",
         )
 
         header = ft.Container(
@@ -563,26 +604,21 @@ class LoteriaUI:
                 [
                     ft.Row(
                         [
-                            ft.Icon(ft.Icons.CASINO_OUTLINED, color="#2563eb", size=30),
+                            ft.Icon(ft.Icons.CASINO_OUTLINED, color="#2563eb", size=32),
                             ft.Text(
-                                "Loterias Pro", size=26, weight="bold", color="black"
+                                "Loterias Pro", size=28, weight="bold", color="black"
                             ),
                         ]
                     ),
                     ft.Row(
                         [
                             self.copiar_btn,
-                            ft.IconButton(
-                                ft.Icons.BAR_CHART,
-                                on_click=self.mostrar_grafico,
-                                icon_color="black",
-                                tooltip="Gráficos",
-                            ),
-                            ft.IconButton(
-                                ft.Icons.HISTORY,
+                            ft.ElevatedButton(
+                                "Ver Histórico de Gastos",
+                                icon=ft.Icons.HISTORY,
                                 on_click=self.abrir_historico,
-                                icon_color="black",
-                                tooltip="Histórico",
+                                bgcolor="#e2e8f0",
+                                color="black",
                             ),
                         ]
                     ),
@@ -598,7 +634,7 @@ class LoteriaUI:
             [
                 ft.TextField(
                     ref=self.app.num_jogos,
-                    label="Jogos",
+                    label="Qtde de Jogos",
                     value="1",
                     expand=True,
                     color="black",
@@ -606,7 +642,7 @@ class LoteriaUI:
                 ),
                 ft.TextField(
                     ref=self.app.num_participantes,
-                    label="Pessoas",
+                    label="Pessoas no Bolão",
                     value="1",
                     expand=True,
                     color="black",
@@ -621,12 +657,12 @@ class LoteriaUI:
             content=ft.Column(
                 [
                     ft.Text(
-                        "Configuração da Aposta", size=20, weight="bold", color="black"
+                        "Configure a sua Aposta", size=22, weight="bold", color="black"
                     ),
                     ft.Divider(),
                     ft.Dropdown(
                         ref=self.app.loteria,
-                        label="Loteria",
+                        label="Escolha a Loteria",
                         label_style=lbl_style,
                         options=[
                             ft.dropdown.Option(k) for k in self.config_loteria.keys()
@@ -635,13 +671,20 @@ class LoteriaUI:
                         on_change=self.atualizar_dezenas,
                         color="black",
                     ),
+                    # ADIÇÃO DOS NOVOS MÉTODOS AQUI NO DROPDOWN:
                     ft.Dropdown(
                         ref=self.app.metodo,
                         label="Método Estatístico",
                         label_style=lbl_style,
                         options=[
                             ft.dropdown.Option("Top Frequentes"),
+                            ft.dropdown.Option(
+                                "Menos Frequentes"
+                            ),  # Algoritmo Novo (Frias)
                             ft.dropdown.Option("Probabilistico"),
+                            ft.dropdown.Option(
+                                "Surpresinha"
+                            ),  # Algoritmo Novo (Aleatório)
                         ],
                         value="Top Frequentes",
                         color="black",
@@ -661,7 +704,7 @@ class LoteriaUI:
                     self.dezenas_slider,
                     ft.Checkbox(
                         ref=self.app.is_bolao,
-                        label="Ativar Modo Bolão",
+                        label="Ativar Múltiplos Jogos / Bolão",
                         on_change=lambda e: (
                             setattr(self.bolao_container, "visible", e.control.value),
                             page.update(),
@@ -695,7 +738,7 @@ class LoteriaUI:
                                         size=24,
                                     ),
                                     ft.Text(
-                                        "Painel de Jogos Gerados",
+                                        "Painel de Visualização dos Jogos",
                                         weight="bold",
                                         color="black",
                                         size=22,
@@ -713,35 +756,43 @@ class LoteriaUI:
                     padding=25,
                     bgcolor="white",
                     border_radius=16,
-                    height=500,
+                    expand=True,  # Ocupa o restante do espaço superior
                     shadow=ft.BoxShadow(blur_radius=10, color="#0D000000"),
                 ),
+                # CONTAINER DO RESUMO FINANCEIRO (Substituindo a aba técnica)
                 ft.Container(
-                    content=ft.Tabs(
-                        tabs=[
-                            ft.Tab(
-                                text="Resumo Financeiro",
-                                icon=ft.Icons.MONETIZATION_ON_OUTLINED,
-                                content=ft.Container(self.resumo_content, padding=25),
+                    content=ft.Column(
+                        [
+                            ft.Row(
+                                [
+                                    ft.Icon(
+                                        ft.Icons.MONETIZATION_ON_OUTLINED,
+                                        color="#059669",
+                                        size=24,
+                                    ),
+                                    ft.Text(
+                                        "Resumo Financeiro da Aposta",
+                                        weight="bold",
+                                        color="black",
+                                        size=20,
+                                    ),
+                                ]
                             ),
-                            ft.Tab(
-                                text="Informações da Loteria",
-                                icon=ft.Icons.INFO_OUTLINE,
-                                content=ft.Container(self.info_content, padding=25),
-                            ),
-                        ],
-                        label_color="#2563eb",
-                        unselected_label_color="#64748b",
+                            ft.Divider(),
+                            self.resumo_content,
+                        ]
                     ),
+                    padding=25,
                     bgcolor="white",
                     border_radius=16,
-                    expand=True,
+                    height=150,  # Tamanho fixo e charmoso no fundo
                     shadow=ft.BoxShadow(blur_radius=10, color="#0D000000"),
                 ),
             ],
             spacing=25,
             col={"md": 7, "lg": 9},
-        )
+            expand=True,
+        )  # expand=True garante que ocupe até o final da tela
 
         page.add(
             ft.Column(
