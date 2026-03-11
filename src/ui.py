@@ -515,12 +515,24 @@ class LoteriaUI:
         try:
             res = self.app.update_manager.check_for_updates()
             if res.get("update_available"):
+                
+                def acao_atualizar(e):
+                    self.page.close(dlg)
+                    # Baixa a atualização e cria o script
+                    sucesso = self.app.update_manager.download_and_install(res["download_url"])
+                    
+                    if sucesso:
+                        # FORÇA O FECHAMENTO IMEDIATO DO APP PARA LIBERAR O ARQUIVO!
+                        os._exit(0) 
+                    else:
+                        self.show_snackbar("Falha ao baixar atualização. Tente novamente mais tarde.", "#ef4444")
+
                 dlg = ft.AlertDialog(
                     title=ft.Text(
                         "Atualização Disponível", color="black", weight="bold"
                     ),
                     content=ft.Text(
-                        f"A versão {res['version']} do Loterias Pro já pode ser instalada.",
+                        f"A versão {res['version']} do Loterias Pro já pode ser instalada.\nO programa será reiniciado.",
                         color="black",
                         size=16,
                     ),
@@ -535,17 +547,12 @@ class LoteriaUI:
                         "Atualizar Agora",
                         bgcolor="#3b82f6",
                         color="white",
-                        on_click=lambda e: (
-                            self.page.close(dlg),
-                            self.app.update_manager.download_and_install(
-                                res["download_url"]
-                            ),
-                        ),
+                        on_click=acao_atualizar, # Chama a nova função
                     ),
                 ]
                 self.page.open(dlg)
-        except:
-            pass
+        except Exception as ex:
+            self.logger.error(f"Erro ao checar updates: {ex}")
 
     # MÉTODO PRINCIPAL
     # ===================================================================
