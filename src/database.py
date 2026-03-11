@@ -2,7 +2,8 @@ import sqlite3
 import json
 import os
 from math import comb
-from utils import get_resource_path
+
+# from utils import get_resource_path
 from config import LOTTERY_CONFIG
 import platformdirs
 
@@ -20,7 +21,7 @@ class DatabaseManager:
         os.makedirs(data_dir, exist_ok=True)
 
         # Cria o caminho final para o banco de dados
-        db_path = os.path.join(data_dir, 'loteria_historico.db')
+        db_path = os.path.join(data_dir, "loteria_historico.db")
 
         print(f"DEBUG: Caminho do Banco de Dados: {db_path}")
 
@@ -30,7 +31,7 @@ class DatabaseManager:
 
     def init_database(self):
         try:
-            self.cursor.execute('''
+            self.cursor.execute("""
                 CREATE TABLE IF NOT EXISTS jogos (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     loteria TEXT NOT NULL,
@@ -44,7 +45,7 @@ class DatabaseManager:
                     data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     observacoes TEXT
                 )
-            ''')
+            """)
             self.conn.commit()
             print("DEBUG: Banco de dados inicializado com sucesso!")
         except sqlite3.Error as e:
@@ -54,17 +55,17 @@ class DatabaseManager:
         """Calcula o preço baseado na loteria e número de dezenas"""
         try:
             config = LOTTERY_CONFIG[loteria]
-            if loteria == 'Mega-Sena':
+            if loteria == "Mega-Sena":
                 if num_dezenas < 6 or num_dezenas > 20:
                     return 0
                 num_combs = comb(num_dezenas, 6)
-            elif loteria == 'Loto Fácil':
+            elif loteria == "Loto Fácil":
                 if num_dezenas < 15 or num_dezenas > 20:
                     return 0
                 num_combs = comb(num_dezenas, 15)
             else:
                 return 0
-            return num_combs * config['preco_base']
+            return num_combs * config["preco_base"]
         except Exception as e:
             print(f"Erro ao calcular preço: {e}")
             return 0
@@ -81,8 +82,11 @@ class DatabaseManager:
             metodo = app.metodo.current.value
             num_dezenas = int(app.num_dezenas.current.value)
             num_jogos = len(app.jogos_atuais)
-            num_participantes = int(
-                app.num_participantes.current.value) if app.is_bolao.current.value else 1
+            num_participantes = (
+                int(app.num_participantes.current.value)
+                if app.is_bolao.current.value
+                else 1
+            )
             is_bolao = app.is_bolao.current.value
 
             # Calcular preço total
@@ -93,25 +97,29 @@ class DatabaseManager:
             numeros_json = json.dumps(app.jogos_atuais)
 
             print(
-                f"DEBUG: Salvando jogo - Loteria: {loteria}, Jogos: {num_jogos}, Preço: R$ {preco_total:.2f}")
+                f"DEBUG: Salvando jogo - Loteria: {loteria}, Jogos: {num_jogos}, Preço: R$ {preco_total:.2f}"
+            )
 
             # Inserir no banco
-            self.cursor.execute('''
+            self.cursor.execute(
+                """
                 INSERT INTO jogos
                 (loteria, metodo, numeros, num_dezenas, preco, is_bolao,
                  num_jogos, num_participantes, observacoes)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (
-                loteria,
-                metodo,
-                numeros_json,
-                num_dezenas,
-                preco_total,
-                is_bolao,
-                num_jogos,
-                num_participantes,
-                observacoes
-            ))
+            """,
+                (
+                    loteria,
+                    metodo,
+                    numeros_json,
+                    num_dezenas,
+                    preco_total,
+                    is_bolao,
+                    num_jogos,
+                    num_participantes,
+                    observacoes,
+                ),
+            )
 
             self.conn.commit()
             print("DEBUG: Jogo salvo com sucesso no banco!")
@@ -127,12 +135,12 @@ class DatabaseManager:
     def carregar_historico(self):
         """Carrega o histórico de jogos"""
         try:
-            query = '''
+            query = """
                 SELECT id, loteria, metodo, numeros, num_dezenas, preco,
                        is_bolao, num_jogos, num_participantes,
                        datetime(data_criacao, 'localtime'), observacoes
                 FROM jogos ORDER BY data_criacao DESC
-            '''
+            """
             self.cursor.execute(query)
             jogos = self.cursor.fetchall()
             print(f"DEBUG: Carregados {len(jogos)} jogos do histórico")
@@ -144,7 +152,7 @@ class DatabaseManager:
     def mostrar_detalhes_jogo(self, jogo_id):
         """Mostra detalhes de um jogo específico"""
         try:
-            self.cursor.execute('SELECT * FROM jogos WHERE id = ?', (jogo_id,))
+            self.cursor.execute("SELECT * FROM jogos WHERE id = ?", (jogo_id,))
             jogo = self.cursor.fetchone()
             if jogo:
                 print(f"DEBUG: Detalhes do jogo {jogo_id} carregados")
@@ -159,14 +167,13 @@ class DatabaseManager:
         """Exclui um jogo do banco"""
         try:
             # Verificar se o jogo existe
-            self.cursor.execute(
-                'SELECT id FROM jogos WHERE id = ?', (jogo_id,))
+            self.cursor.execute("SELECT id FROM jogos WHERE id = ?", (jogo_id,))
             if not self.cursor.fetchone():
                 print(f"DEBUG: Jogo {jogo_id} não existe")
                 return False
 
             # Excluir o jogo
-            self.cursor.execute('DELETE FROM jogos WHERE id = ?', (jogo_id,))
+            self.cursor.execute("DELETE FROM jogos WHERE id = ?", (jogo_id,))
             self.conn.commit()
             print(f"DEBUG: Jogo {jogo_id} excluído com sucesso")
             return True
@@ -177,7 +184,7 @@ class DatabaseManager:
     def contar_jogos(self):
         """Conta o total de jogos salvos"""
         try:
-            self.cursor.execute('SELECT COUNT(*) FROM jogos')
+            self.cursor.execute("SELECT COUNT(*) FROM jogos")
             count = self.cursor.fetchone()[0]
             print(f"DEBUG: Total de jogos no banco: {count}")
             return count
@@ -188,31 +195,31 @@ class DatabaseManager:
     def buscar_jogos(self, loteria=None, metodo=None, data_inicio=None, data_fim=None):
         """Busca jogos com filtros"""
         try:
-            query = '''
+            query = """
                 SELECT id, loteria, metodo, numeros, num_dezenas, preco,
                        is_bolao, num_jogos, num_participantes,
                        datetime(data_criacao, 'localtime'), observacoes
                 FROM jogos WHERE 1=1
-            '''
+            """
             params = []
 
             if loteria:
-                query += ' AND loteria = ?'
+                query += " AND loteria = ?"
                 params.append(loteria)
 
             if metodo:
-                query += ' AND metodo = ?'
+                query += " AND metodo = ?"
                 params.append(metodo)
 
             if data_inicio:
-                query += ' AND date(data_criacao) >= ?'
+                query += " AND date(data_criacao) >= ?"
                 params.append(data_inicio)
 
             if data_fim:
-                query += ' AND date(data_criacao) <= ?'
+                query += " AND date(data_criacao) <= ?"
                 params.append(data_fim)
 
-            query += ' ORDER BY data_criacao DESC'
+            query += " ORDER BY data_criacao DESC"
 
             self.cursor.execute(query, params)
             jogos = self.cursor.fetchall()
@@ -228,23 +235,21 @@ class DatabaseManager:
             stats = {}
 
             # Total de jogos
-            self.cursor.execute('SELECT COUNT(*) FROM jogos')
-            stats['total_jogos'] = self.cursor.fetchone()[0]
+            self.cursor.execute("SELECT COUNT(*) FROM jogos")
+            stats["total_jogos"] = self.cursor.fetchone()[0]
 
             # Total gasto
-            self.cursor.execute('SELECT SUM(preco) FROM jogos')
+            self.cursor.execute("SELECT SUM(preco) FROM jogos")
             resultado = self.cursor.fetchone()[0]
-            stats['total_gasto'] = resultado if resultado else 0
+            stats["total_gasto"] = resultado if resultado else 0
 
             # Jogos por loteria
-            self.cursor.execute(
-                'SELECT loteria, COUNT(*) FROM jogos GROUP BY loteria')
-            stats['por_loteria'] = dict(self.cursor.fetchall())
+            self.cursor.execute("SELECT loteria, COUNT(*) FROM jogos GROUP BY loteria")
+            stats["por_loteria"] = dict(self.cursor.fetchall())
 
             # Jogos por método
-            self.cursor.execute(
-                'SELECT metodo, COUNT(*) FROM jogos GROUP BY metodo')
-            stats['por_metodo'] = dict(self.cursor.fetchall())
+            self.cursor.execute("SELECT metodo, COUNT(*) FROM jogos GROUP BY metodo")
+            stats["por_metodo"] = dict(self.cursor.fetchall())
 
             print(f"DEBUG: Estatísticas calculadas: {stats}")
             return stats
@@ -255,7 +260,7 @@ class DatabaseManager:
     def close(self):
         """Fecha a conexão com o banco"""
         try:
-            if hasattr(self, 'conn') and self.conn:
+            if hasattr(self, "conn") and self.conn:
                 self.conn.close()
                 print("DEBUG: Conexão com banco fechada")
         except Exception as e:
