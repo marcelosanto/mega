@@ -1,7 +1,6 @@
 import os
 import logging
 from datetime import datetime
-import json
 import threading
 from utils import get_resource_path
 from config import LOTTERY_CONFIG, VERSION, UPDATE_BASE_URL
@@ -15,7 +14,6 @@ from math import comb
 import matplotlib
 
 matplotlib.use("svg")
-
 
 class LoteriaUI:
     def __init__(self, app):
@@ -113,6 +111,19 @@ class LoteriaUI:
             self.page.dialog.open = False
             self.page.update()
 
+    def copiar_jogos(self, e):
+        if not self.app.jogos_atuais:
+            self.show_snackbar("⚠️ Não há jogos para copiar!", "#f59e0b")
+            return
+        
+        texto_copia = f"--- JOGOS GERADOS: {self.app.loteria.current.value} ---\n"
+        texto_copia += f"Data: {datetime.now().strftime('%d/%m/%Y %H:%M')}\n\n"
+        for i, jogo in enumerate(self.app.jogos_atuais, 1):
+            texto_copia += f"Jogo {i:02d}: {' - '.join(f'{n:02d}' for n in jogo)}\n"
+        
+        self.page.set_clipboard(texto_copia)
+        self.show_snackbar("📋 Jogos copiados! Pronto para colar e imprimir.", "#3b82f6")
+
     def atualizar_dezenas(self, e):
         loteria = self.app.loteria.current.value
         config = self.config_loteria[loteria]
@@ -121,13 +132,11 @@ class LoteriaUI:
         self.dezenas_slider.value = config["min_dezenas"]
         self.atualizar_label_dezenas()
         
-        # Limpa e reconstrói as abas de info e dicas separadamente
         self.info_content.controls.clear()
         self.dicas_content.controls.clear()
-        
         cards = self.build_info_cards(config)
-        self.info_content.controls.append(cards[0]) # Card de Informações
-        self.dicas_content.controls.append(cards[1]) # Card de Dicas
+        self.info_content.controls.append(cards[0])
+        self.dicas_content.controls.append(cards[1])
         
         self.carregar_dados()
         self.page.update()
@@ -149,139 +158,91 @@ class LoteriaUI:
         self.gerar_btn.disabled = True
         self.gerar_btn.text = "Gerando..."
         self.page.update()
-        self.numeros_container.controls.clear()
+        
+        self.numeros_grid.controls.clear()
         self.resumo_content.controls.clear()
         self.app.jogos_atuais = []
+        
         try:
-            num_jogos = (
-                int(self.app.num_jogos.current.value)
-                if self.app.is_bolao.current.value
-                else 1
-            )
+            num_jogos = int(self.app.num_jogos.current.value) if self.app.is_bolao.current.value else 1
             num_dezenas = int(self.app.num_dezenas.current.value)
             metodo = self.app.metodo.current.value.lower().replace(" ", "_")
             loteria = self.app.loteria.current.value
             config = self.config_loteria[loteria]
             total_preco = 0
+            
             for i in range(num_jogos):
                 numeros = self.gerar_numeros(metodo, num_dezenas)
-                if not numeros:
-                    continue
+                if not numeros: continue
                 self.app.jogos_atuais.append(numeros)
+                
                 bola_row = ft.Row(
                     [
                         ft.Container(
-                            content=ft.Text(f"{num:02d}", color="white", weight="bold"),
+                            content=ft.Text(f"{num:02d}", color="white", weight="bold", size=12),
                             bgcolor=config["cor_bola"],
-                            width=40,
-                            height=40,
-                            border_radius=20,
+                            width=30, height=30,
+                            border_radius=15,
                             alignment=ft.alignment.center,
                         )
                         for num in numeros
                     ],
                     wrap=True,
+                    spacing=5,
                 )
-                self.numeros_container.controls.append(
+                
+                # GRID RESPONSIVO: 1 coluna em mobile, 2 em tablet, 3 em desktop
+                self.numeros_grid.controls.append(
                     ft.Container(
-                        ft.Column(
-                            [
-                                ft.Text(f"Jogo {i+1}", weight="bold", color="black"),
-                                bola_row,
-                            ]
-                        ),
-                        padding=15,
+                        ft.Column([
+                            ft.Text(f"Jogo {i+1}", weight="bold", size=13, color="#475569"),
+                            bola_row,
+                        ], spacing=8),
+                        padding=12,
                         border_radius=8,
-                        border=ft.border.all(1, "#e0e0e0"),
+                        border=ft.border.all(1, "#f1f5f9"),
+                        bgcolor="#f8fafc",
+                        col={"sm": 12, "md": 6, "lg": 4},
                     )
                 )
                 total_preco += self.calcular_preco(num_dezenas)
 
-            num_participantes = (
-                int(self.app.num_participantes.current.value)
-                if self.app.is_bolao.current.value
-                else 1
-            )
+            num_participantes = int(self.app.num_participantes.current.value) if self.app.is_bolao.current.value else 1
             preco_por_participante = total_preco / max(num_participantes, 1)
 
             self.resumo_content.controls.append(
-                ft.Column(
-                    [
-                        ft.Row(
-                            [
-                                ft.Text("Custo Total:", color="black"),
-                                ft.Text(
-                                    f"R$ {total_preco:.2f}",
-                                    weight="bold",
-                                    size=16,
-                                    color="#059669",
-                                ),
-                            ]
-                        ),
-                        ft.Row(
-                            [
-                                ft.Text("Participantes:", color="black"),
-                                ft.Text(
-                                    f"{num_participantes}", weight="bold", color="black"
-                                ),
-                            ]
-                        ),
-                        ft.Row(
-                            [
-                                ft.Text("Por Participante:", color="black"),
-                                ft.Text(
-                                    f"R$ {preco_por_participante:.2f}",
-                                    weight="bold",
-                                    size=16,
-                                    color="#059669",
-                                ),
-                            ]
-                        ),
-                    ]
-                )
+                ft.Column([
+                    ft.Row([ft.Text("Custo Total:"), ft.Text(f"R$ {total_preco:.2f}", weight="bold", size=16, color="#059669")]),
+                    ft.Row([ft.Text("Participantes:"), ft.Text(f"{num_participantes}", weight="bold")]),
+                    ft.Row([ft.Text("Por Participante:"), ft.Text(f"R$ {preco_por_participante:.2f}", weight="bold", size=16, color="#059669")]),
+                ])
             )
+            
             self.salvar_button.disabled = False
-            self.show_snackbar("✅ Números gerados com sucesso!", color="#10b981")
+            self.copiar_btn.visible = True
+            self.show_snackbar("🎲 Jogos gerados!", color="#10b981")
+            
         except Exception as ex:
-            self.logger.error(f"Erro ao gerar jogos: {ex}")
             self.show_snackbar(f"❌ Erro: {ex}", "#ef4444")
         finally:
             self.gerar_btn.disabled = False
             self.gerar_btn.text = "🎲 Gerar Números"
             self.page.update()
 
-    def criar_janela_salvar(self, e):
-        if not self.app.jogos_atuais:
-            return self.show_snackbar("⚠️ Nenhum jogo gerado para salvar!", "#f59e0b")
-        try:
-            if self.app.db_manager.salvar_no_banco(self.app, ""):
-                self.salvar_button.disabled = True
-                self.show_snackbar("✅ Jogo salvo com sucesso!", "#10b981")
-            else:
-                self.show_snackbar("❌ Erro ao salvar jogo.", "#ef4444")
-        except Exception as ex:
-            self.logger.error(f"Erro ao salvar jogo: {ex}")
-            self.show_snackbar(f"❌ Erro: {ex}", "#ef4444")
-
     def mostrar_grafico(self, e):
         loteria = self.app.loteria.current.value
         config = self.config_loteria[loteria]
         if len(self.app.freq) == 0:
-            return self.show_snackbar(
-                "❌ Dados de frequência não disponíveis.", "#ef4444"
-            )
+            return self.show_snackbar("❌ Carregue os dados primeiro.", "#ef4444")
 
-        fig, ax = plt.subplots()
-        ax.bar(
-            range(1, config["num_total"] + 1), self.app.freq, color=config["cor_bola"]
-        )
-        ax.set_title(f"Frequência - {loteria}")
+        fig, ax = plt.subplots(figsize=(8, 4))
+        ax.bar(range(1, config["num_total"] + 1), self.app.freq, color=config["cor_bola"])
+        ax.set_title(f"Frequência de Dezenas - {loteria}")
         chart = MatplotlibChart(fig, expand=True)
 
         dialog = ft.AlertDialog(
-            modal=True,
-            title=ft.Text("Frequência de Números"),
-            content=chart,
+            title=ft.Text("Análise de Frequência"),
+            content=ft.Container(chart, height=400),
             actions=[ft.TextButton("Fechar", on_click=self.close_dialog)],
         )
         self.page.dialog = dialog
@@ -290,57 +251,28 @@ class LoteriaUI:
     def abrir_historico(self, e):
         try:
             jogos = self.app.db_manager.carregar_historico()
-            if not jogos:
-                return self.show_snackbar(
-                    "ℹ️ Nenhum jogo encontrado no histórico.", "#3b82f6"
-                )
+            if not jogos: return self.show_snackbar("ℹ️ Histórico vazio.", "#3b82f6")
 
-            rows = []
-            for jogo in jogos:
-                (id, loteria, metodo, _, dezenas, preco, bolao, n_jogos, _, data, _) = (
-                    jogo
-                )
-                rows.append(
-                    ft.DataRow(
-                        cells=[
-                            ft.DataCell(ft.Text(id)),
-                            ft.DataCell(ft.Text(loteria)),
-                            ft.DataCell(ft.Text(metodo)),
-                            ft.DataCell(ft.Text(f"R$ {preco:.2f}")),
-                            ft.DataCell(
-                                ft.Text(
-                                    datetime.strptime(
-                                        data, "%Y-%m-%d %H:%M:%S"
-                                    ).strftime("%d/%m/%Y")
-                                )
-                            ),
-                        ]
-                    )
-                )
-
-            table = ft.DataTable(
-                columns=[
-                    ft.DataColumn(ft.Text(c))
-                    for c in ["ID", "Loteria", "Método", "Preço", "Data"]
-                ],
-                rows=rows,
-            )
+            rows = [
+                ft.DataRow(cells=[
+                    ft.DataCell(ft.Text(str(j[0]))), ft.DataCell(ft.Text(j[1])),
+                    ft.DataCell(ft.Text(j[2])), ft.DataCell(ft.Text(f"R$ {j[5]:.2f}")),
+                    ft.DataCell(ft.Text(j[9][:10])),
+                ]) for j in jogos
+            ]
 
             dialog = ft.AlertDialog(
-                modal=True,
                 title=ft.Text("Histórico de Jogos"),
-                content=ft.Container(content=table, width=700, height=400),
+                content=ft.DataTable(
+                    columns=[ft.DataColumn(ft.Text(c)) for c in ["ID", "Loteria", "Método", "Preço", "Data"]],
+                    rows=rows,
+                ),
                 actions=[ft.TextButton("Fechar", on_click=self.close_dialog)],
             )
             self.page.dialog = dialog
             self.page.open(dialog)
-
         except Exception as ex:
-            self.logger.error(f"Erro ao abrir histórico: {ex}")
-            self.show_snackbar(f"❌ Erro ao abrir histórico: {ex}", "#ef4444")
-
-    # MÉTODOS DE ATUALIZAÇÃO (UPDATE)
-    # ===================================================================
+            self.show_snackbar(f"❌ Erro ao ler histórico: {ex}", "#ef4444")
 
     def on_check_updates_click(self, e):
         self.show_snackbar("🔎 Verificando atualizações...", color="#3b82f6")
@@ -351,141 +283,44 @@ class LoteriaUI:
         result = manager.check_for_updates()
         if result.get("update_available"):
             self.show_update_dialog(result, manager)
-        elif result.get("error"):
-            self.show_snackbar(f"❌ {result['error']}", "#ef4444")
         else:
-            self.show_snackbar("✅ Você já está na versão mais recente.", "#10b981")
+            self.show_snackbar("✅ Versão mais recente instalada.", "#10b981")
 
     def show_update_dialog(self, update_info, manager):
-        def start_update(e):
-            self.close_dialog(e)
-            self.show_snackbar("📥 Baixando atualização...", duration=10000)
-
-            def download_worker():
-                install_result = manager.download_and_install(
-                    update_info["download_url"]
-                )
-                if install_result["success"]:
-                    self.show_restart_dialog()
-                else:
-                    self.show_snackbar(f"❌ Erro: {install_result['error']}", "#ef4444")
-
-            threading.Thread(target=download_worker).start()
-
         dialog = ft.AlertDialog(
-            modal=True,
-            title=ft.Text("Atualização Disponível"),
-            content=ft.Text(f"Nova versão {update_info['version']} disponível."),
-            actions=[
-                ft.TextButton("Depois", on_click=self.close_dialog),
-                ft.ElevatedButton("Atualizar", on_click=start_update),
-            ],
-        )
-        self.page.dialog = dialog
-        self.page.open(dialog)
-
-    def show_restart_dialog(self):
-        dialog = ft.AlertDialog(
-            modal=True,
-            title=ft.Text("Atualização Concluída"),
-            content=ft.Text("Reinicie o aplicativo para usar a nova versão."),
-            actions=[ft.ElevatedButton("OK", on_click=self.close_dialog)],
+            title=ft.Text("Nova Versão"),
+            content=ft.Text(f"Versão {update_info['version']} disponível."),
+            actions=[ft.TextButton("Depois", on_click=self.close_dialog), ft.ElevatedButton("Atualizar")],
         )
         self.page.dialog = dialog
         self.page.open(dialog)
 
     def build_info_cards(self, config):
         return [
-            ft.Container(
-                content=ft.Column(
-                    [
-                        ft.Row(
-                            [
-                                ft.Icon(ft.Icons.INFO_ROUNDED, color="#3b82f6"),
-                                ft.Text("Configurações Atuais", weight="bold", color="black"),
-                            ],
-                            spacing=10,
-                        ),
-                        ft.Divider(height=1),
-                        ft.Row(
-                            [
-                                ft.Text("Sorteados:", color="black"),
-                                ft.Text(
-                                    f"{config['num_sorteados']}",
-                                    weight="bold",
-                                    color="black",
-                                ),
-                            ]
-                        ),
-                        ft.Row(
-                            [
-                                ft.Text("Preço Base:", color="black"),
-                                ft.Text(
-                                    f"R$ {config['preco_base']:.2f}",
-                                    weight="bold",
-                                    color="black",
-                                ),
-                            ]
-                        ),
-                    ],
-                    spacing=8,
-                ),
-                bgcolor="white",
-                padding=5,
-            ),
-            ft.Container(
-                content=ft.Column(
-                    [
-                        ft.Row(
-                            [
-                                ft.Icon(ft.Icons.LIGHTBULB_ROUNDED, color="#f59e0b"),
-                                ft.Text("Dicas Úteis", weight="bold", color="black"),
-                            ],
-                            spacing=10,
-                        ),
-                        ft.Divider(height=1),
-                        ft.Text(
-                            "• Mais números = maior custo e maior chance.\n"
-                            "• Use o método Probabilístico para balancear frequência.\n"
-                            "• O histórico ajuda a acompanhar seus gastos.",
-                            color="black",
-                        ),
-                    ],
-                    spacing=8,
-                ),
-                bgcolor="white",
-                padding=5,
-            ),
+            ft.Container(content=ft.Column([
+                ft.Row([ft.Icon(ft.Icons.SETTINGS, size=20), ft.Text("Configuração", weight="bold")]),
+                ft.Text(f"Sorteados: {config['num_sorteados']}"),
+                ft.Text(f"Preço Unitário: R$ {config['preco_base']:.2f}"),
+            ], spacing=5)),
+            ft.Container(content=ft.Column([
+                ft.Row([ft.Icon(ft.Icons.LIGHTBULB, size=20, color="orange"), ft.Text("Sugestão", weight="bold")]),
+                ft.Text("O método Probabilístico usa estatística real do arquivo XLSX."),
+            ], spacing=5))
         ]
 
-    # MÉTODO PRINCIPAL DE CONSTRUÇÃO DA UI
+    # MÉTODO PRINCIPAL
     # ===================================================================
     def main(self, page: ft.Page):
         self.page = page
-        page.title = "Gerador jogos de Loterias"
-        page.bgcolor = "#f8fafc"
-        page.padding = 0
-        page.window_width, page.window_height = 1200, 800
-        page.window_min_width, page.window_min_height = 800, 600
+        page.title = "Loteria Gerador Pro"
+        page.theme_mode = ft.ThemeMode.LIGHT
+        
+        # CORREÇÃO PARA O ERRO: Iniciar Maximizado
+        page.window_state = "maximized" 
+        
+        page.theme = ft.Theme(color_scheme_seed="#3b82f6", use_material3=True)
 
-        page.theme = ft.Theme(
-            color_scheme=ft.ColorScheme(
-                primary="#3b82f6",
-                on_primary="white",
-                secondary="#10b981",
-                on_secondary="white",
-                surface="white",
-                on_surface="#1f2937",
-                background="#f8fafc",
-                on_background="#1f2937",
-            ),
-            use_material3=True,
-        )
-
-        page.window_minimizable = True
-        page.window_maximizable = True
-
-        # Referências
+        # Referências de App
         self.app.loteria = ft.Ref[ft.Dropdown]()
         self.app.num_dezenas = ft.Ref[ft.Slider]()
         self.app.metodo = ft.Ref[ft.Dropdown]()
@@ -493,236 +328,97 @@ class LoteriaUI:
         self.app.num_jogos = ft.Ref[ft.TextField]()
         self.app.num_participantes = ft.Ref[ft.TextField]()
 
-        # Elementos de UI
-        self.dezenas_slider = ft.Slider(
-            ref=self.app.num_dezenas,
-            min=6,
-            max=20,
-            divisions=14,
-            value=6,
-            on_change=self.atualizar_label_dezenas,
-        )
+        self.dezenas_slider = ft.Slider(ref=self.app.num_dezenas, min=6, max=20, value=6, on_change=self.atualizar_label_dezenas)
         self.dezenas_info = ft.Text("R$ 5.00", color="#059669", weight="bold")
         
-        # Containers de conteúdo para as abas
-        self.info_content = ft.Column(spacing=15, scroll=ft.ScrollMode.AUTO)
-        self.dicas_content = ft.Column(spacing=15, scroll=ft.ScrollMode.AUTO)
-        self.resumo_content = ft.Column(spacing=15, scroll=ft.ScrollMode.AUTO)
+        # Grid de Jogos (Responsivo)
+        self.numeros_grid = ft.ResponsiveRow(spacing=10, run_spacing=10)
         
-        # Container de números (agora fica no topo)
-        self.numeros_container = ft.Column(spacing=15, scroll=ft.ScrollMode.AUTO, expand=True)
+        self.info_content = ft.Column()
+        self.dicas_content = ft.Column()
+        self.resumo_content = ft.Column()
+        
+        self.gerar_btn = ft.ElevatedButton("🎲 Gerar Números", bgcolor="#3b82f6", color="white", height=45, expand=True, on_click=self.gerar_jogos)
+        self.salvar_button = ft.ElevatedButton("💾 Salvar", bgcolor="#10b981", color="white", height=45, expand=True, disabled=True, on_click=lambda _: self.app.db_manager.salvar_no_banco(self.app, ""))
+        
+        self.copiar_btn = ft.IconButton(icon=ft.Icons.COPY_ALL_ROUNDED, tooltip="Copiar Jogos", on_click=self.copiar_jogos, visible=False)
 
-        self.gerar_btn = ft.ElevatedButton(
-            "🎲 Gerar Números",
-            bgcolor="#3b82f6",
-            color="white",
-            height=48,
-            on_click=self.gerar_jogos,
-        )
-        self.salvar_button = ft.ElevatedButton(
-            "💾 Salvar Jogo",
-            bgcolor="#10b981",
-            color="white",
-            height=40,
-            disabled=True,
-            on_click=self.criar_janela_salvar,
-        )
-        self.bolao_container = ft.Row(
-            [
-                ft.TextField(
-                    ref=self.app.num_jogos,
-                    label="Nº Jogos",
-                    label_style=ft.TextStyle(color="black"),
-                    color="black",
-                    value="1",
-                    expand=True,
-                ),
-                ft.TextField(
-                    ref=self.app.num_participantes,
-                    label="Participantes",
-                    label_style=ft.TextStyle(color="black"),
-                    color="black",
-                    value="1",
-                    expand=True,
-                ),
-            ],
-            visible=False,
-        )
+        self.bolao_container = ft.Row([
+            ft.TextField(ref=self.app.num_jogos, label="Nº Jogos", value="1", expand=True, keyboard_type=ft.KeyboardType.NUMBER),
+            ft.TextField(ref=self.app.num_participantes, label="Participantes", value="1", expand=True, keyboard_type=ft.KeyboardType.NUMBER),
+        ], visible=False)
 
         header = ft.Container(
-            content=ft.Row(
-                [
-                    ft.Row(
-                        [
-                            ft.Icon(ft.Icons.CASINO_ROUNDED, color="#3b82f6", size=32),
-                            ft.Column(
-                                [
-                                    ft.Text(
-                                        "Gerador de Números",
-                                        size=24,
-                                        weight="w700",
-                                        color="#010103",
-                                    ),
-                                    ft.Text("Para Loterias", size=16, color="#6b7280"),
-                                ],
-                                spacing=0,
-                            ),
-                        ],
-                        spacing=12,
-                        expand=True,
-                    ),
-                    ft.Row(
-                        [
-                            ft.IconButton(
-                                icon=ft.Icons.BAR_CHART_ROUNDED,
-                                tooltip="Frequência",
-                                on_click=self.mostrar_grafico,
-                            ),
-                            ft.IconButton(
-                                icon=ft.Icons.HISTORY,
-                                tooltip="Histórico",
-                                on_click=self.abrir_historico,
-                            ),
-                            ft.IconButton(
-                                icon=ft.Icons.UPDATE_ROUNDED,
-                                tooltip="Verificar Atualizações",
-                                on_click=self.on_check_updates_click,
-                            ),
-                        ]
-                    ),
-                ],
-                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-            ),
-            bgcolor="white",
-            padding=20,
-            border=ft.border.only(bottom=ft.BorderSide(1, "#e5e7eb")),
+            content=ft.Row([
+                ft.Row([ft.Icon(ft.Icons.CASINO), ft.Text("Loterias Pro", size=22, weight="bold")]),
+                ft.Row([
+                    self.copiar_btn,
+                    ft.IconButton(ft.Icons.PRINT_ROUNDED, tooltip="Imprimir (Copia p/ área de transf.)", on_click=self.copiar_jogos),
+                    ft.IconButton(ft.Icons.BAR_CHART, on_click=self.mostrar_grafico, tooltip="Gráfico"),
+                    ft.IconButton(ft.Icons.HISTORY, on_click=self.abrir_historico, tooltip="Histórico"),
+                    ft.IconButton(ft.Icons.UPDATE, on_click=self.on_check_updates_click, tooltip="Atualizar"),
+                ])
+            ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+            padding=15, bgcolor="white", border=ft.border.only(bottom=ft.BorderSide(1, "#f1f5f9"))
         )
 
         left_panel = ft.Container(
-            content=ft.Column(
-                [
-                    ft.Dropdown(
-                        ref=self.app.loteria,
-                        label="Loteria",
-                        label_style=ft.TextStyle(color="black"),
-                        color="black",
-                        bgcolor="white",
-                        options=[
-                            ft.dropdown.Option("Mega-Sena"),
-                            ft.dropdown.Option("Loto Fácil"),
-                        ],
-                        value="Mega-Sena",
-                        on_change=self.atualizar_dezenas,
-                    ),
-                    ft.Dropdown(
-                        ref=self.app.metodo,
-                        label="Método",
-                        label_style=ft.TextStyle(color="black"),
-                        color="black",
-                        bgcolor="white",
-                        options=[
-                            ft.dropdown.Option("Top Frequentes"),
-                            ft.dropdown.Option("Probabilistico"),
-                        ],
-                        value="Top Frequentes",
-                    ),
-                    ft.Row(
-                        [ft.Text("Dezenas:", color="black"), self.dezenas_info],
-                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                    ),
-                    self.dezenas_slider,
-                    ft.Checkbox(
-                        ref=self.app.is_bolao,
-                        label="É um Bolão?",
-                        label_style=ft.TextStyle(color="black"),
-                        on_change=self.toggle_bolao,
-                    ),
-                    self.bolao_container,
-                    ft.Divider(height=10, color="transparent"),
-                    self.gerar_btn,
-                    self.salvar_button,
-                ],
-                spacing=15,
-            ),
-            padding=20,
-            border_radius=10,
-            bgcolor="white",
-            col={"xs": 12, "md": 4, "lg": 3},
+            content=ft.Column([
+                ft.Dropdown(ref=self.app.loteria, label="Selecione a Loteria", options=[ft.dropdown.Option("Mega-Sena"), ft.dropdown.Option("Loto Fácil")], value="Mega-Sena", on_change=self.atualizar_dezenas),
+                ft.Dropdown(ref=self.app.metodo, label="Método de Geração", options=[ft.dropdown.Option("Top Frequentes"), ft.dropdown.Option("Probabilistico")], value="Top Frequentes"),
+                ft.Row([ft.Text("Dezenas:"), self.dezenas_info], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+                self.dezenas_slider,
+                ft.Checkbox(ref=self.app.is_bolao, label="Ativar modo Bolão", on_change=self.toggle_bolao),
+                self.bolao_container,
+                ft.Row([self.gerar_btn, self.salvar_button], spacing=10),
+            ], spacing=20),
+            padding=20, bgcolor="white", border_radius=12, col={"xs": 12, "md": 4, "lg": 3}, border=ft.border.all(1, "#f1f5f9")
         )
 
-        # COMPONENTE DE ABAS PARA DETALHES
         tabs_detalhes = ft.Tabs(
             selected_index=0,
-            animation_duration=300,
             tabs=[
-                ft.Tab(
-                    text="Informações",
-                    icon=ft.Icons.INFO_OUTLINED,
-                    content=ft.Container(content=self.info_content, padding=15),
-                ),
-                ft.Tab(
-                    text="Dicas",
-                    icon=ft.Icons.LIGHTBULB_OUTLINE,
-                    content=ft.Container(content=self.dicas_content, padding=15),
-                ),
-                ft.Tab(
-                    text="Resumo",
-                    icon=ft.Icons.MONETIZATION_ON_OUTLINED,
-                    content=ft.Container(content=self.resumo_content, padding=15),
-                ),
-            ],
-            expand=True,
+                ft.Tab(text="Informações", icon=ft.Icons.INFO_OUTLINE, content=ft.Container(self.info_content, padding=15)),
+                ft.Tab(text="Dicas", icon=ft.Icons.LIGHTBULB_OUTLINE, content=ft.Container(self.dicas_content, padding=15)),
+                ft.Tab(text="Resumo Financeiro", icon=ft.Icons.ATTACH_MONEY, content=ft.Container(self.resumo_content, padding=15)),
+            ], expand=True
         )
 
-        right_panel = ft.Column(
-            [
-                # SEÇÃO SUPERIOR: NÚMEROS GERADOS
-                ft.Container(
-                    content=ft.Column(
-                        [
-                            ft.Row([
-                                ft.Text("🎯 Números Gerados", weight="w600", color="black", size=18),
-                            ]),
-                            self.numeros_container,
-                        ]
-                    ),
-                    padding=20,
-                    border_radius=8,
-                    bgcolor="white",
-                    height=450,
-                    border=ft.border.all(1, "#e5e7eb"),
-                ),
-                
-                # SEÇÃO INFERIOR: TABS COM INFO, DICAS E RESUMO
-                ft.Container(
-                    content=tabs_detalhes,
-                    padding=5,
-                    border_radius=8,
-                    bgcolor="white",
-                    expand=True,
-                    border=ft.border.all(1, "#e5e7eb"),
-                ),
-            ],
-            spacing=20,
-            col={"xs": 12, "md": 8, "lg": 9},
-            expand=True,
-        )
+        right_panel = ft.Column([
+            # TOPO: NÚMEROS GERADOS COM GRID RESPONSIVO
+            ft.Container(
+                content=ft.Column([
+                    ft.Row([
+                        ft.Icon(ft.Icons.GRID_VIEW_ROUNDED, size=20), 
+                        ft.Text("Painel de Jogos Gerados", weight="bold")
+                    ]),
+                    # CORREÇÃO AQUI: Usamos Column com scroll para envolver o grid
+                    ft.Column(
+                        [self.numeros_grid], 
+                        scroll=ft.ScrollMode.AUTO, 
+                        expand=True
+                    )
+                ]),
+                padding=20, 
+                bgcolor="white", 
+                border_radius=12, 
+                height=450, 
+                border=ft.border.all(1, "#f1f5f9")
+            ),
+            # BASE: ABAS
+            ft.Container(
+                content=tabs_detalhes, 
+                bgcolor="white", 
+                border_radius=12, 
+                expand=True, 
+                border=ft.border.all(1, "#f1f5f9")
+            )
+        ], spacing=20, col={"xs": 12, "md": 8, "lg": 9}, expand=True)
 
         page.add(
-            ft.Column(
-                [
-                    header,
-                    ft.Container(
-                        content=ft.ResponsiveRow(
-                            [left_panel, right_panel],
-                            spacing=20,
-                            vertical_alignment=ft.CrossAxisAlignment.START,
-                        ),
-                        padding=20,
-                        expand=True,
-                    ),
-                ],
-                expand=True,
-            )
+            ft.Column([
+                header, 
+                ft.Container(ft.ResponsiveRow([left_panel, right_panel], spacing=20), padding=20, expand=True)
+            ], expand=True)
         )
         self.atualizar_dezenas(None)
